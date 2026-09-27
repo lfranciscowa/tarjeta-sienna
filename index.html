@@ -1,0 +1,1882 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Tarjeta de Control Pediátrico</title>
+<meta name="description" content="Tarjeta de control pediátrico: crecimiento, vacunas, medicamentos y próximas citas.">
+<meta name="theme-color" content="#ec4899">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Tarjeta Sienna">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+/* ===== PANTALLA DE ACCESO (PIN) ===== */
+body.locked > *:not(#lockScreen) { display: none !important; }
+#lockScreen {
+  position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #fdf2f8, #f3e8ff); padding: 20px;
+}
+#lockScreen.hidden { display: none; }
+.lock-card {
+  background: white; border-radius: 20px; padding: 32px 28px; max-width: 340px; width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15); text-align: center;
+}
+.lock-icon { font-size: 40px; margin-bottom: 8px; }
+.lock-card h2 { font-size: 18px; color: #831843; margin-bottom: 4px; }
+.lock-card p { font-size: 13px; color: #6b7280; margin-bottom: 18px; }
+.lock-card input {
+  width: 100%; padding: 12px 14px; border: 1px solid #d1d5db; border-radius: 12px;
+  font-size: 15px; text-align: center; letter-spacing: 1px; margin-bottom: 12px; outline: none;
+}
+.lock-card input:focus { border-color: #ec4899; box-shadow: 0 0 0 3px rgba(236,72,153,0.15); }
+.lock-card button {
+  width: 100%; padding: 12px; border: none; border-radius: 12px; font-size: 14px; font-weight: 700;
+  color: white; background: linear-gradient(135deg, #ec4899, #8b5cf6); cursor: pointer;
+}
+.lock-card button:hover { opacity: 0.92; }
+.lock-error { color: #dc2626; font-size: 12px; margin-top: 10px; min-height: 14px; }
+.lock-card.shake { animation: lockShake 0.4s; }
+@keyframes lockShake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-8px);} 75%{transform:translateX(8px);} }
+
+@page { size: A4; margin: 12mm; }
+@media print {
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .no-print { display: none !important; }
+  .page-break { page-break-before: always; }
+  .card { box-shadow: none !important; border: 1px solid #ccc !important; }
+  .chart-container { height: 280px !important; }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f3f4f6; color: #1f2937; line-height: 1.5; padding: 20px; }
+.container { max-width: 900px; margin: 0 auto; }
+.header { position: relative; border-radius: 16px; padding: 28px; color: white; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(236,72,153,0.25); overflow: hidden; min-height: 160px; display: flex; align-items: center; gap: 24px; }
+.header-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; opacity: 0.95; }
+.header-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(236,72,153,0.35), rgba(139,92,246,0.25)); z-index: 1; }
+.header-text { position: relative; z-index: 2; flex: 1; }
+.header h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; text-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+.header p { opacity: 0.95; font-size: 15px; text-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+.baby-img { position: relative; z-index: 2; width: 130px; height: 130px; border-radius: 50%; object-fit: cover; border: 4px solid rgba(255,255,255,0.7); box-shadow: 0 4px 20px rgba(0,0,0,0.3); flex-shrink: 0; }
+.header h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+.header p { opacity: 0.9; font-size: 15px; }
+.card { background: white; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #e5e7eb; }
+.card h2 { font-size: 18px; color: #1f2937; display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.icon-box { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media (max-width: 700px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } .header { flex-direction: column; text-align: center; } .baby-img { width: 110px; height: 110px; } }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 11px; color: #6b7280; margin-bottom: 3px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; }
+.field .value { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 14px; min-height: 36px; background: #f9fafb; }
+.field input, .field select, .field textarea { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 14px; font-family: inherit; outline: none; background: white; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: #ec4899; box-shadow: 0 0 0 3px rgba(236,72,153,0.1); }
+.field textarea { resize: vertical; min-height: 60px; }
+.consulta-card { margin-bottom:12px; padding:16px; background:#fefce8; border-radius:12px; border:1px solid #fde047; }
+.consulta-header { display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; }
+.consulta-header h3 { margin:0; color:#854d0e; font-size:15px; flex:1; }
+.consulta-chevron { color:#a16207; font-size:12px; flex-shrink:0; transition: transform 0.2s; }
+.consulta-card.abierta .consulta-chevron { transform: rotate(90deg); }
+.consulta-body { display:none; margin-top:12px; }
+.consulta-card.abierta .consulta-body { display:block; }
+.btn-guardar-consulta { margin-top:4px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.btn-guardar-consulta:hover { opacity: 0.92; }
+.consulta-del { background:none; border:none; cursor:pointer; font-size:14px; padding:4px 6px; border-radius:6px; flex-shrink:0; color:#b91c1c; }
+.consulta-del:hover { background:#fee2e2; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th, td { padding: 8px 6px; text-align: center; border-bottom: 1px solid #e5e7eb; }
+th { background: #f3f4f6; font-weight: 600; color: #374151; font-size: 11px; text-transform: uppercase; }
+td { color: #4b5563; }
+td:first-child, th:first-child { text-align: left; }
+td input, td select { width: 100%; padding: 4px 6px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 12px; font-family: inherit; }
+td input[type="checkbox"] { width: 18px; height: 18px; accent-color: #ec4899; cursor: pointer; }
+.vac-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px; }
+.vac-cell input[type="date"] { width: 100%; min-width: 90px; padding: 3px 4px; font-size: 11px; border: 1px solid #d1d5db; border-radius: 5px; }
+.pct-input { width: 45px !important; text-align: center; padding: 3px 4px !important; font-size: 11px !important; }
+.checklist { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.checklist label { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+.checklist label:hover { background: #f3f4f6; }
+.checklist input[type="checkbox"] { width: 16px; height: 16px; accent-color: #ec4899; flex-shrink: 0; }
+.checklist .age-tag { color: #9ca3af; font-size: 11px; margin-left: auto; }
+.info-banner { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-radius: 16px; padding: 16px 20px; margin-bottom: 20px; border: 1px solid #bbf7d0; text-align: center; }
+.info-banner p { margin: 0; font-size: 14px; color: #166534; }
+.info-banner strong { font-size: 18px; }
+.print-btn { position: fixed; bottom: 24px; right: 24px; background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white; border: none; padding: 14px 28px; border-radius: 50px; font-size: 15px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 20px rgba(236,72,153,0.35); z-index: 1000; }
+.note { font-size: 11px; color: #9ca3af; margin-top: 8px; }
+.pink { background: #fce7f3; } .yellow { background: #fef3c7; } .green { background: #d1fae5; }
+.purple { background: #ede9fe; } .red { background: #fee2e2; } .blue { background: #dbeafe; }
+.orange { background: #ffedd5; } .teal { background: #ccfbf1; }
+h3 { font-size: 13px; color: #ec4899; font-weight: 600; margin-bottom: 10px; }
+.table-wrap { overflow-x: auto; }
+.pct-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11px; color: #6b7280; margin-top: 8px; }
+.pct-legend span { display: flex; align-items: center; gap: 4px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot-red { background: #ef4444; } .dot-yellow { background: #f59e0b; } .dot-green { background: #22c55e; }
+.chart-container { position: relative; height: 300px; margin-bottom: 20px; }
+.charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+@media (max-width: 700px) { .charts-grid { grid-template-columns: 1fr; } }
+.pai-badge { display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; margin-left: 4px; }
+.pai-public { background: #d1fae5; color: #166534; }
+.pai-private { background: #fee2e2; color: #991b1b; }
+.pai-pending { background: #fef3c7; color: #92400e; }
+.med-card { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 8px; }
+.med-card h4 { font-size: 13px; color: #374151; margin-bottom: 4px; }
+.med-card p { font-size: 12px; color: #6b7280; margin: 0; }
+.med-card .dosis { color: #ec4899; font-weight: 600; }
+.save-btn { position: fixed; bottom: 24px; right: 100px; background: linear-gradient(135deg, #22c55e, #16a34a); color: white; border: none; padding: 14px 28px; border-radius: 50px; font-size: 15px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 20px rgba(34,197,94,0.35); z-index: 1000; }
+.save-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(34,197,94,0.45); }
+.history-panel { position: fixed; top: 80px; right: 20px; width: 280px; max-height: 400px; background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 999; overflow: hidden; display: none; }
+.history-panel.active { display: block; }
+.history-header { background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white; padding: 12px 16px; font-weight: 600; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
+.history-list { padding: 12px; max-height: 320px; overflow-y: auto; font-size: 12px; }
+.history-item { padding: 8px; border-radius: 8px; margin-bottom: 6px; background: #f9fafb; border-left: 3px solid #ec4899; }
+.history-item .time { color: #9ca3af; font-size: 10px; }
+.history-item .action { color: #374151; font-weight: 500; }
+.history-toggle { position: fixed; top: 20px; right: 20px; background: white; border: none; padding: 10px 16px; border-radius: 50px; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 12px rgba(0,0,0,0.1); z-index: 999; color: #ec4899; }
+.history-toggle:hover { background: #fce7f3; }
+@media print { .save-btn, .history-panel, .history-toggle { display: none !important; } }
+
+/* ===== BOTONES FLOTANTES ADICIONALES ===== */
+.btn-float { position: fixed; border: none; border-radius: 50px; font-size: 13px; font-weight: 600; cursor: pointer; color: white; z-index: 1000; padding: 12px 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); transition: transform 0.15s, box-shadow 0.15s; }
+.btn-float:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.25); }
+
+/* ===== TOAST ===== */
+.toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(20px); background: #1f2937; color: white; padding: 10px 22px; border-radius: 50px; font-size: 13px; font-weight: 600; z-index: 5000; opacity: 0; transition: opacity 0.3s, transform 0.3s; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { background: #16a34a; }
+.toast.error   { background: #dc2626; }
+
+@media print { .btn-float, .save-btn, .print-btn, .history-toggle { display: none !important; } }
+
+/* ===== SEMÁFORO DE PERCENTILES ===== */
+.pct-bajo    { background: #fee2e2 !important; color: #991b1b !important; font-weight:700; }
+.pct-riesgo  { background: #fef3c7 !important; color: #92400e !important; font-weight:700; }
+.pct-normal  { background: #d1fae5 !important; color: #065f46 !important; font-weight:700; }
+.pct-alto    { background: #fef3c7 !important; color: #92400e !important; font-weight:700; }
+.pct-extremo { background: #fee2e2 !important; color: #991b1b !important; font-weight:700; }
+
+/* ===== INDICADOR DE GUARDADO ===== */
+#saveIndicator { position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
+  background:#1f2937; color:white; padding:6px 18px; border-radius:50px;
+  font-size:12px; font-weight:600; z-index:4000; opacity:0;
+  transition:opacity 0.4s; pointer-events:none; }
+#saveIndicator.show { opacity:1; }
+
+/* ===== VALIDACIÓN ===== */
+input.val-error { border-color: #ef4444 !important; background:#fff5f5 !important; }
+input.val-ok    { border-color: #22c55e !important; }
+
+/* ===== BOTONES MÓVIL ===== */
+@media (max-width: 700px) {
+  .btn-float-group { position:fixed; bottom:16px; right:16px; display:flex; flex-direction:column; gap:8px; z-index:1000; }
+  .save-btn, .print-btn {
+    position: static !important;
+    display: block !important;
+    width: calc(100% - 32px) !important;
+    margin: 8px 16px !important;
+    text-align: center;
+  }
+  .btn-float, .history-toggle {
+    right: 10px !important;
+    left: auto !important;
+    padding: 10px 14px !important;
+    font-size: 12px !important;
+  }
+  .gdrive-btn { bottom: 190px !important; }
+  .gdrive-download-btn { bottom: 138px !important; }
+  .reminder-btn { bottom: 86px !important; padding: 10px 12px !important; }
+  .history-toggle { top: 10px !important; padding: 8px 12px !important; font-size: 12px !important; }
+}
+</style>
+<base target="_blank">
+
+<!-- Google Drive API (se activan solo si configuras CLIENT_ID y API_KEY) -->
+<script src="https://apis.google.com/js/api.js" onload="gapiLoaded()" defer></script>
+<script src="https://accounts.google.com/gsi/client" onload="gisLoaded()" defer></script>
+</head>
+<body class="locked">
+
+<div id="lockScreen">
+  <div class="lock-card" id="lockCard">
+    <div class="lock-icon">🔒</div>
+    <h2>Tarjeta de Sienna</h2>
+    <p>Ingresa la clave para ver la tarjeta</p>
+    <input type="password" id="lockInput" placeholder="Clave" autocomplete="off" inputmode="text">
+    <button type="button" onclick="intentarDesbloqueo()">Entrar</button>
+    <div class="lock-error" id="lockError"></div>
+  </div>
+</div>
+
+<script>
+// ===== ACCESO POR PIN =====
+// Guarda solo el hash SHA-256 de la clave, nunca la clave en texto plano.
+const PIN_HASH = '1d8ed68a3a3f716db5ac63ca0eff3c86155cfa9f549c5077b2b4ec4f3d0cdea1';
+const UNLOCK_KEY = 'tarjeta_sienna_unlocked';
+
+async function sha256Hex(texto) {
+  const buf = new TextEncoder().encode(texto);
+  const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function desbloquear() {
+  document.body.classList.remove('locked');
+  document.getElementById('lockScreen').classList.add('hidden');
+}
+
+async function intentarDesbloqueo() {
+  const input = document.getElementById('lockInput');
+  const err = document.getElementById('lockError');
+  const card = document.getElementById('lockCard');
+  const hash = await sha256Hex(input.value);
+  if (hash === PIN_HASH) {
+    try { localStorage.setItem(UNLOCK_KEY, '1'); } catch (e) {}
+    desbloquear();
+  } else {
+    err.textContent = 'Clave incorrecta, intenta de nuevo';
+    card.classList.remove('shake');
+    void card.offsetWidth;
+    card.classList.add('shake');
+    input.value = '';
+    input.focus();
+  }
+}
+
+(function initLock() {
+  let yaDesbloqueado = false;
+  try { yaDesbloqueado = localStorage.getItem(UNLOCK_KEY) === '1'; } catch (e) {}
+  if (yaDesbloqueado) {
+    desbloquear();
+  } else {
+    document.addEventListener('DOMContentLoaded', () => document.getElementById('lockInput').focus());
+  }
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('lockInput');
+  if (input) input.addEventListener('keydown', (e) => { if (e.key === 'Enter') intentarDesbloqueo(); });
+});
+</script>
+
+<div class="container">
+
+<!-- HEADER -->
+<div class="header">
+  <img class="header-bg" src="https://kimi-web-img.moonshot.cn/img/i.etsystatic.com/d1f708485249debaa2c75775c106fae2d94081b1.jpg" alt="Fondo">
+  <div class="header-overlay"></div>
+  <div class="header-text">
+    <h1>🍼 Tarjeta de Control Pediátrico</h1>
+    <p>Seguimiento integral del desarrollo infantil — Primera infancia (0-24 meses)</p>
+  </div>
+  <img class="baby-img" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZjlhOGQ0Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2MwODRmYyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPGNpcmNsZSBjeD0iMTAwIiBjeT0iMTAwIiByPSIxMDAiIGZpbGw9InVybCgjZykiLz4KICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSI4NiIgcj0iMzQiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuOTUiLz4KICA8cGF0aCBkPSJNNTUgMTY1YzAtMzAgMjAtNTIgNDUtNTJzNDUgMjIgNDUgNTIiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuOTUiLz4KPC9zdmc+Cg==" alt="Bebé Sienna">
+</div>
+
+<!-- DATOS DEL PACIENTE -->
+<div class="card">
+  <h2><span class="icon-box pink">👶</span> Datos del Paciente</h2>
+  <div class="grid-2">
+    <div class="field"><label>Nombre completo</label><div class="value">Sienna</div></div>
+    <div class="field"><label>Fecha de nacimiento</label><div class="value">27 de junio de 2026</div></div>
+    <div class="field"><label>Sexo</label><div class="value">Femenino</div></div>
+    <div class="field"><label>No. Historia Clínica</label><input id="campo_1"  type="text" placeholder="HC-00000"></div>
+    <div class="field"><label>Nombre de la madre</label><input id="campo_2"  type="text" placeholder="Nombre completo"></div>
+    <div class="field"><label>Nombre del padre</label><input id="campo_3"  type="text" placeholder="Nombre completo"></div>
+    <div class="field"><label>Teléfono de contacto</label><input id="campo_4"  type="tel" placeholder="+58 ..."></div>
+    <div class="field"><label>Tipo de parto</label><select id="campo_250"><option value="">Seleccionar...</option><option>Eutócico (vaginal)</option><option>Cesárea</option><option>Fórceps</option><option>Vacuum</option></select></div>
+  </div>
+</div>
+
+<!-- ANTECEDENTES PERINATALES -->
+<div class="card">
+  <h2><span class="icon-box pink">🤰</span> Antecedentes Perinatales</h2>
+  <div class="grid-4">
+    <div class="field"><label>Edad gestacional</label><input id="campo_5"  type="text" placeholder="Ej: 38 sem + 3 días"></div>
+    <div class="field"><label>Peso al nacer (g)</label><div class="value">3,110 g</div></div>
+    <div class="field"><label>Talla al nacer (cm)</label><div class="value">50 cm</div></div>
+    <div class="field"><label>Perímetro cefálico (cm)</label><input id="campo_6"  type="number" step="0.1" placeholder="Ej: 34.5"></div>
+    <div class="field"><label>Apgar min 1 / min 5</label><input id="campo_7"  type="text" placeholder="Ej: 8 / 9"></div>
+    <div class="field"><label>Lactancia materna exclusiva</label><select id="campo_251"><option value="">Seleccionar...</option><option>Sí</option><option>No</option><option>Mixta</option></select></div>
+    <div class="field" style="grid-column: span 2;"><label>Complicaciones / Observaciones</label><textarea id="campo_242"  rows="2" placeholder="Describir cualquier complicación, hospitalización, ictericia, etc."></textarea></div>
+  </div>
+</div>
+
+<!-- EDAD ACTUAL -->
+<div class="info-banner" id="bannerEdad">
+  <p>📅 Edad actual: <strong id="edadActual">calculando…</strong> &nbsp;|&nbsp; Próxima consulta: <strong id="proximaConsultaBanner">—</strong></p>
+</div>
+
+<!-- REGISTRO DE CONSULTAS -->
+<div class="card">
+  <h2><span class="icon-box green">📋</span> Registro de Consultas por Visita</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Fecha</th><th>Edad</th><th>Peso(kg)</th><th>%Peso</th><th>Talla(cm)</th><th>%Talla</th><th>PC(cm)</th><th>%PC</th><th>IMC</th><th>%IMC</th><th>PA</th><th>Temp°C</th><th style="min-width:160px">Observaciones</th></tr>
+      </thead>
+      <tbody>
+        <tr style="background:#fefce8">
+          <td><input id="campo_8"  type="date" value="2026-06-27"></td>
+          <td><input id="campo_9"  type="text" value="RN" style="width:45px"></td>
+          <td><input id="campo_10"  type="number" step="0.01" value="3.11" style="width:55px"></td>
+          <td><input id="campo_11"  type="number" step="0.1" placeholder="—" class="pct-input"></td>
+          <td><input id="campo_12"  type="number" step="0.1" value="50" style="width:50px"></td>
+          <td><input id="campo_13"  type="number" step="0.1" placeholder="—" class="pct-input"></td>
+          <td><input id="campo_14"  type="number" step="0.1" placeholder="—" style="width:50px"></td>
+          <td><input id="campo_15"  type="number" step="0.1" placeholder="—" class="pct-input"></td>
+          <td><input id="campo_16"  type="number" step="0.1" value="12.4" style="width:45px"></td>
+          <td><input id="campo_17"  type="number" step="0.1" placeholder="—" class="pct-input"></td>
+          <td><input id="campo_18"  type="text" placeholder="—" style="width:55px"></td>
+          <td><input id="campo_19"  type="number" step="0.1" placeholder="—" style="width:45px"></td>
+          <td><input id="campo_20"  type="text" value="Nacimiento" style="min-width:140px"></td>
+        </tr>
+        <tr style="background:#ecfdf5">
+          <td><input id="campo_21"  type="date" value="2026-07-16"></td>
+          <td><input id="campo_22"  type="text" value="19d" style="width:45px"></td>
+          <td><input id="campo_23"  type="number" step="0.01" value="3.80" style="width:55px"></td>
+          <td><input id="campo_24"  type="number" step="0.1" placeholder="—" class="pct-input"></td>
+          <td><input id="campo_25"  type="number" step="0.1" value="58" style="width:50px"></td>
+          <td><input id="campo_26"  type="number" step="0.1" placeholder="—" class="pct-input"></td>
+          <td><input id="campo_27"  type="number" step="0.1" placeholder="—" style="width:50px"></td>
+          <td><input id="campo_28"  type="number" step="0.1" placeholder="—" class="pct-input"></td>
+          <td><input id="campo_29"  type="number" step="0.1" value="11.3" style="width:45px"></td>
+          <td><input id="campo_30"  type="number" step="0.1" placeholder="—" class="pct-input"></td>
+          <td><input id="campo_31"  type="text" placeholder="—" style="width:55px"></td>
+          <td><input id="campo_32"  type="number" step="0.1" placeholder="—" style="width:45px"></td>
+          <td><input id="campo_33"  type="text" value="1ra consulta - Dra. Antonia Abrodos" style="min-width:140px"></td>
+        </tr>
+        <tr>
+          <td><input id="campo_34"  type="date" value="2026-08-20"></td>
+          <td><input id="campo_35"  type="text" value="1m24d" style="width:45px"></td>
+          <td><input id="campo_36"  type="number" step="0.01" placeholder="kg" style="width:55px"></td>
+          <td><input id="campo_37"  type="number" step="0.1" placeholder="—" class="pct-input"></td>
+          <td><input id="campo_38"  type="number" step="0.1" placeholder="cm" style="width:50px"></td>
+          <td><input id="campo_39"  type="number" step="0.1" placeholder="—" class="pct-input"></td>
+          <td><input id="campo_40"  type="number" step="0.1" placeholder="cm" style="width:50px"></td>
+          <td><input id="campo_41"  type="number" step="0.1" placeholder="—" class="pct-input"></td>
+          <td><input id="campo_42"  type="number" step="0.1" placeholder="—" style="width:45px"></td>
+          <td><input id="campo_43"  type="number" step="0.1" placeholder="—" class="pct-input"></td>
+          <td><input id="campo_44"  type="text" placeholder="mmHg" style="width:55px"></td>
+          <td><input id="campo_45"  type="number" step="0.1" placeholder="°C" style="width:45px"></td>
+          <td><input id="campo_46"  type="text" placeholder="Próxima cita" style="min-width:140px"></td>
+        </tr>
+        <tr><td><input id="campo_47"  type="date"></td><td><input id="campo_48"  type="text" placeholder="2m" style="width:45px"></td><td><input id="campo_49"  type="number" step="0.01" placeholder="kg" style="width:55px"></td><td><input id="campo_50"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_51"  type="number" step="0.1" placeholder="cm" style="width:50px"></td><td><input id="campo_52"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_53"  type="number" step="0.1" placeholder="cm" style="width:50px"></td><td><input id="campo_54"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_55"  type="number" step="0.1" placeholder="—" style="width:45px"></td><td><input id="campo_56"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_57"  type="text" placeholder="mmHg" style="width:55px"></td><td><input id="campo_58"  type="number" step="0.1" placeholder="°C" style="width:45px"></td><td><input id="campo_59"  type="text" placeholder="Notas..." style="min-width:140px"></td></tr>
+        <tr><td><input id="campo_60"  type="date"></td><td><input id="campo_61"  type="text" placeholder="4m" style="width:45px"></td><td><input id="campo_62"  type="number" step="0.01" placeholder="kg" style="width:55px"></td><td><input id="campo_63"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_64"  type="number" step="0.1" placeholder="cm" style="width:50px"></td><td><input id="campo_65"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_66"  type="number" step="0.1" placeholder="cm" style="width:50px"></td><td><input id="campo_67"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_68"  type="number" step="0.1" placeholder="—" style="width:45px"></td><td><input id="campo_69"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_70"  type="text" placeholder="mmHg" style="width:55px"></td><td><input id="campo_71"  type="number" step="0.1" placeholder="°C" style="width:45px"></td><td><input id="campo_72"  type="text" placeholder="Notas..." style="min-width:140px"></td></tr>
+        <tr><td><input id="campo_73"  type="date"></td><td><input id="campo_74"  type="text" placeholder="6m" style="width:45px"></td><td><input id="campo_75"  type="number" step="0.01" placeholder="kg" style="width:55px"></td><td><input id="campo_76"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_77"  type="number" step="0.1" placeholder="cm" style="width:50px"></td><td><input id="campo_78"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_79"  type="number" step="0.1" placeholder="cm" style="width:50px"></td><td><input id="campo_80"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_81"  type="number" step="0.1" placeholder="—" style="width:45px"></td><td><input id="campo_82"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_83"  type="text" placeholder="mmHg" style="width:55px"></td><td><input id="campo_84"  type="number" step="0.1" placeholder="°C" style="width:45px"></td><td><input id="campo_85"  type="text" placeholder="Notas..." style="min-width:140px"></td></tr>
+        <tr><td><input id="campo_86"  type="date"></td><td><input id="campo_87"  type="text" placeholder="9m" style="width:45px"></td><td><input id="campo_88"  type="number" step="0.01" placeholder="kg" style="width:55px"></td><td><input id="campo_89"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_90"  type="number" step="0.1" placeholder="cm" style="width:50px"></td><td><input id="campo_91"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_92"  type="number" step="0.1" placeholder="cm" style="width:50px"></td><td><input id="campo_93"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_94"  type="number" step="0.1" placeholder="—" style="width:45px"></td><td><input id="campo_95"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_96"  type="text" placeholder="mmHg" style="width:55px"></td><td><input id="campo_97"  type="number" step="0.1" placeholder="°C" style="width:45px"></td><td><input id="campo_98"  type="text" placeholder="Notas..." style="min-width:140px"></td></tr>
+        <tr><td><input id="campo_99"  type="date"></td><td><input id="campo_100"  type="text" placeholder="12m" style="width:45px"></td><td><input id="campo_101"  type="number" step="0.01" placeholder="kg" style="width:55px"></td><td><input id="campo_102"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_103"  type="number" step="0.1" placeholder="cm" style="width:50px"></td><td><input id="campo_104"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_105"  type="number" step="0.1" placeholder="cm" style="width:50px"></td><td><input id="campo_106"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_107"  type="number" step="0.1" placeholder="—" style="width:45px"></td><td><input id="campo_108"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_109"  type="text" placeholder="mmHg" style="width:55px"></td><td><input id="campo_110"  type="number" step="0.1" placeholder="°C" style="width:45px"></td><td><input id="campo_111"  type="text" placeholder="Notas..." style="min-width:140px"></td></tr>
+        <tr><td><input id="campo_112"  type="date"></td><td><input id="campo_113"  type="text" placeholder="18m" style="width:45px"></td><td><input id="campo_114"  type="number" step="0.01" placeholder="kg" style="width:55px"></td><td><input id="campo_115"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_116"  type="number" step="0.1" placeholder="cm" style="width:50px"></td><td><input id="campo_117"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_118"  type="number" step="0.1" placeholder="cm" style="width:50px"></td><td><input id="campo_119"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_120"  type="number" step="0.1" placeholder="—" style="width:45px"></td><td><input id="campo_121"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_122"  type="text" placeholder="mmHg" style="width:55px"></td><td><input id="campo_123"  type="number" step="0.1" placeholder="°C" style="width:45px"></td><td><input id="campo_124"  type="text" placeholder="Notas..." style="min-width:140px"></td></tr>
+        <tr><td><input id="campo_125"  type="date"></td><td><input id="campo_126"  type="text" placeholder="24m" style="width:45px"></td><td><input id="campo_127"  type="number" step="0.01" placeholder="kg" style="width:55px"></td><td><input id="campo_128"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_129"  type="number" step="0.1" placeholder="cm" style="width:50px"></td><td><input id="campo_130"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_131"  type="number" step="0.1" placeholder="cm" style="width:50px"></td><td><input id="campo_132"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_133"  type="number" step="0.1" placeholder="—" style="width:45px"></td><td><input id="campo_134"  type="number" step="0.1" placeholder="—" class="pct-input"></td><td><input id="campo_135"  type="text" placeholder="mmHg" style="width:55px"></td><td><input id="campo_136"  type="number" step="0.1" placeholder="°C" style="width:45px"></td><td><input id="campo_137"  type="text" placeholder="Notas..." style="min-width:140px"></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="pct-legend">
+    <span><span class="dot dot-red"></span> &lt; P3 (Bajo)</span>
+    <span><span class="dot dot-yellow"></span> P3-P10 (Riesgo)</span>
+    <span><span class="dot dot-green"></span> P10-P97 (Normal)</span>
+    <span><span class="dot dot-yellow"></span> P97-P99 (Alto)</span>
+    <span><span class="dot dot-red"></span> &gt; P99 (Extremo)</span>
+  </div>
+  <p class="note">PC = Perímetro cefálico | PA = Presión arterial | IMC = Índice de masa corporal | % = Percentil según tablas OMS</p>
+</div>
+
+<!-- GRÁFICAS -->
+<div class="card">
+  <h2><span class="icon-box blue">📈</span> Gráficas de Crecimiento (Curvas Percentilares OMS)</h2>
+  <p style="font-size:12px; color:#6b7280; margin-bottom:16px;">Presione "Actualizar gráficas" para visualizar la trayectoria de Sienna con los datos ingresados.</p>
+  <button class="no-print" onclick="updateCharts()" style="background:linear-gradient(135deg,#ec4899,#8b5cf6);color:white;border:none;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:16px;">🔄 Actualizar gráficas</button>
+  <div class="charts-grid">
+    <div><h3>Peso para la edad (kg)</h3><div class="chart-container"><canvas id="chartPeso"></canvas></div></div>
+    <div><h3>Talla para la edad (cm)</h3><div class="chart-container"><canvas id="chartTalla"></canvas></div></div>
+    <div><h3>Perímetro cefálico (cm)</h3><div class="chart-container"><canvas id="chartPC"></canvas></div></div>
+    <div><h3>IMC para la edad</h3><div class="chart-container"><canvas id="chartIMC"></canvas></div></div>
+  </div>
+</div>
+
+<!-- MEDICAMENTOS -->
+<div class="card">
+  <h2><span class="icon-box orange">💊</span> Medicamentos y Tratamiento por Consulta</h2>
+
+  <div id="historialConsultas"></div>
+
+  <div id="formConsulta" style="margin-bottom:16px; padding:16px; background:#f9fafb; border-radius:12px; border:1px dashed #d1d5db;">
+    <p id="formConsultaTitulo" style="margin:0 0 10px 0; font-size:12px; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:0.3px;">Nueva consulta</p>
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+      <div class="field" style="max-width:220px; flex:1; min-width:160px;"><label>📅 Fecha de la consulta</label><input id="campo_247" type="date"></div>
+      <div class="field" style="flex:1; min-width:200px;"><label>👩‍⚕️ Doctor/a</label><input id="campo_249" type="text" placeholder="Nombre del médico" value="Dra. Antonia Abrodos R."></div>
+    </div>
+    <div class="field"><label>Medicamentos indicados</label><textarea id="campo_243"  rows="4" placeholder="Registrar medicamentos, dosis, frecuencia y duración del tratamiento..."></textarea></div>
+    <div class="field"><label>Indicaciones adicionales / Próxima cita</label><textarea id="campo_244"  rows="2" placeholder="Notas del médico, recomendaciones, próxima fecha de control..."></textarea></div>
+    <div class="field" style="max-width:220px;"><label>📌 Fecha de la próxima cita</label><input id="campo_248" type="date"></div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <button type="button" id="btnGuardarConsulta" class="btn-guardar-consulta no-print" onclick="guardarConsulta()">💾 Guardar consulta en el historial</button>
+      <button type="button" id="btnCancelarEdicion" class="no-print" onclick="cancelarEdicionConsulta()" style="display:none; background:#e5e7eb; color:#374151; border:none; padding:10px 16px; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- VACUNACIÓN VENEZUELA -->
+<div class="card page-break">
+  <h2><span class="icon-box yellow">💉</span> Esquema de Vacunación — Venezuela 2025 (SVPP / MPPS)</h2>
+  <p style="font-size:12px; color:#6b7280; margin-bottom:8px;">
+    <span class="pai-badge pai-public">PAI</span> = Pública &nbsp;
+    <span class="pai-badge pai-private">PRIV</span> = Solo privada &nbsp;
+    <span class="pai-badge pai-pending">PEND</span> = Pendiente en PAI
+  </p>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="min-width:200px">Vacuna</th>
+          <th>RN<br><span style="font-size:10px;color:#9ca3af;font-weight:400">Fecha</span></th>
+          <th>2m<br><span style="font-size:10px;color:#9ca3af;font-weight:400">Fecha</span></th>
+          <th>4m<br><span style="font-size:10px;color:#9ca3af;font-weight:400">Fecha</span></th>
+          <th>6m<br><span style="font-size:10px;color:#9ca3af;font-weight:400">Fecha</span></th>
+          <th>12m<br><span style="font-size:10px;color:#9ca3af;font-weight:400">Fecha</span></th>
+          <th>18m<br><span style="font-size:10px;color:#9ca3af;font-weight:400">Fecha</span></th>
+          <th>4-6a<br><span style="font-size:10px;color:#9ca3af;font-weight:400">Fecha</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="font-weight:500">BCG <span class="pai-badge pai-public">PAI</span></td>
+          <td><div class="vac-cell"><input id="campo_138"  type="checkbox"><input id="campo_139"  type="date"></div></td>
+          <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+        </tr>
+        <tr>
+          <td style="font-weight:500">Hepatitis B <span class="pai-badge pai-public">PAI</span></td>
+          <td><div class="vac-cell"><input id="campo_140"  type="checkbox"><input id="campo_141"  type="date"></div></td>
+          <td colspan="3" style="color:#9ca3af;font-size:11px;">En Pentavalente (2,4,6m)</td>
+          <td>—</td><td>—</td><td>—</td>
+        </tr>
+        <tr>
+          <td style="font-weight:500">Pentavalente <span class="pai-badge pai-public">PAI</span></td>
+          <td>—</td>
+          <td><div class="vac-cell"><input id="campo_142"  type="checkbox"><input id="campo_143"  type="date"></div></td>
+          <td><div class="vac-cell"><input id="campo_144"  type="checkbox"><input id="campo_145"  type="date"></div></td>
+          <td><div class="vac-cell"><input id="campo_146"  type="checkbox"><input id="campo_147"  type="date"></div></td>
+          <td>—</td>
+          <td><div class="vac-cell"><input id="campo_148"  type="checkbox"><input id="campo_149"  type="date"></div></td>
+          <td><div class="vac-cell"><input id="campo_150"  type="checkbox"><input id="campo_151"  type="date"></div></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500">Polio (VOP) <span class="pai-badge pai-public">PAI</span></td>
+          <td>—</td>
+          <td><div class="vac-cell"><input id="campo_152"  type="checkbox"><input id="campo_153"  type="date"></div></td>
+          <td><div class="vac-cell"><input id="campo_154"  type="checkbox"><input id="campo_155"  type="date"></div></td>
+          <td><div class="vac-cell"><input id="campo_156"  type="checkbox"><input id="campo_157"  type="date"></div></td>
+          <td>—</td>
+          <td><div class="vac-cell"><input id="campo_158"  type="checkbox"><input id="campo_159"  type="date"></div></td>
+          <td><div class="vac-cell"><input id="campo_160"  type="checkbox"><input id="campo_161"  type="date"></div></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500">Rotavirus <span class="pai-badge pai-private">PRIV</span></td>
+          <td>—</td>
+          <td><div class="vac-cell"><input id="campo_162"  type="checkbox"><input id="campo_163"  type="date"></div></td>
+          <td><div class="vac-cell"><input id="campo_164"  type="checkbox"><input id="campo_165"  type="date"></div></td>
+          <td><div class="vac-cell"><input id="campo_166"  type="checkbox"><input id="campo_167"  type="date"></div></td>
+          <td>—</td><td>—</td><td>—</td>
+        </tr>
+        <tr>
+          <td style="font-weight:500">Neumococo (PCV) <span class="pai-badge pai-private">PRIV</span></td>
+          <td>—</td>
+          <td><div class="vac-cell"><input id="campo_168"  type="checkbox"><input id="campo_169"  type="date"></div></td>
+          <td><div class="vac-cell"><input id="campo_170"  type="checkbox"><input id="campo_171"  type="date"></div></td>
+          <td><div class="vac-cell"><input id="campo_172"  type="checkbox"><input id="campo_173"  type="date"></div></td>
+          <td><div class="vac-cell"><input id="campo_174"  type="checkbox"><input id="campo_175"  type="date"></div></td>
+          <td>—</td><td>—</td>
+        </tr>
+        <tr>
+          <td style="font-weight:500">Influenza <span class="pai-badge pai-pending">PEND</span></td>
+          <td>—</td><td>—</td><td>—</td>
+          <td><div class="vac-cell"><input id="campo_176"  type="checkbox"><input id="campo_177"  type="date"></div></td>
+          <td><div class="vac-cell"><input id="campo_178"  type="checkbox"><input id="campo_179"  type="date"></div></td>
+          <td><div class="vac-cell"><input id="campo_180"  type="checkbox"><input id="campo_181"  type="date"></div></td>
+          <td><div class="vac-cell"><input id="campo_182"  type="checkbox"><input id="campo_183"  type="date"></div></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500">SPR / Triple Viral <span class="pai-badge pai-public">PAI</span></td>
+          <td>—</td><td>—</td><td>—</td><td>—</td>
+          <td><div class="vac-cell"><input id="campo_184"  type="checkbox"><input id="campo_185"  type="date"></div></td>
+          <td><div class="vac-cell"><input id="campo_186"  type="checkbox"><input id="campo_187"  type="date"></div></td>
+          <td><div class="vac-cell"><input id="campo_188"  type="checkbox"><input id="campo_189"  type="date"></div></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500">Fiebre Amarilla <span class="pai-badge pai-public">PAI</span></td>
+          <td>—</td><td>—</td><td>—</td><td>—</td>
+          <td><div class="vac-cell"><input id="campo_190"  type="checkbox"><input id="campo_191"  type="date"></div></td>
+          <td>—</td><td>—</td>
+        </tr>
+        <tr>
+          <td style="font-weight:500">Varicela <span class="pai-badge pai-pending">PEND</span></td>
+          <td>—</td><td>—</td><td>—</td><td>—</td>
+          <td><div class="vac-cell"><input id="campo_192"  type="checkbox"><input id="campo_193"  type="date"></div></td>
+          <td>—</td>
+          <td><div class="vac-cell"><input id="campo_194"  type="checkbox"><input id="campo_195"  type="date"></div></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500">Hepatitis A <span class="pai-badge pai-pending">PEND</span></td>
+          <td>—</td><td>—</td><td>—</td><td>—</td>
+          <td><div class="vac-cell"><input id="campo_196"  type="checkbox"><input id="campo_197"  type="date"></div></td>
+          <td><div class="vac-cell"><input id="campo_198"  type="checkbox"><input id="campo_199"  type="date"></div></td>
+          <td>—</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="note">* Basado en Esquema SVPP 2025 y MPPS Venezuela. PRIV = solo privada. PEND = en espera de inclusión oficial.</p>
+</div>
+
+<!-- HITOS DEL DESARROLLO -->
+<div class="card">
+  <h2><span class="icon-box purple">🎯</span> Hitos del Desarrollo Psicomotor</h2>
+  <div class="grid-2">
+    <div>
+      <h3>🦵 Motor Grueso</h3>
+      <div class="checklist">
+        <label><input id="campo_200"  type="checkbox"><span>Levanta la cabeza</span><span class="age-tag">2-3m</span></label>
+        <label><input id="campo_201"  type="checkbox"><span>Se voltea solo</span><span class="age-tag">4-6m</span></label>
+        <label><input id="campo_202"  type="checkbox"><span>Se sienta sin apoyo</span><span class="age-tag">6-8m</span></label>
+        <label><input id="campo_203"  type="checkbox"><span>Gatea</span><span class="age-tag">8-10m</span></label>
+        <label><input id="campo_204"  type="checkbox"><span>Se para con apoyo</span><span class="age-tag">9-12m</span></label>
+        <label><input id="campo_205"  type="checkbox"><span>Camina solo</span><span class="age-tag">12-15m</span></label>
+        <label><input id="campo_206"  type="checkbox"><span>Sube escaleras con ayuda</span><span class="age-tag">18-24m</span></label>
+      </div>
+    </div>
+    <div>
+      <h3>✋ Motor Fino</h3>
+      <div class="checklist">
+        <label><input id="campo_207"  type="checkbox"><span>Sigue objetos con la vista</span><span class="age-tag">1-2m</span></label>
+        <label><input id="campo_208"  type="checkbox"><span>Lleva manos a la boca</span><span class="age-tag">2-4m</span></label>
+        <label><input id="campo_209"  type="checkbox"><span>Agarra objetos</span><span class="age-tag">4-6m</span></label>
+        <label><input id="campo_210"  type="checkbox"><span>Traslada objeto mano a mano</span><span class="age-tag">6-8m</span></label>
+        <label><input id="campo_211"  type="checkbox"><span>Pinza (pulgar-índice)</span><span class="age-tag">9-12m</span></label>
+        <label><input id="campo_212"  type="checkbox"><span>Apila bloques</span><span class="age-tag">15-18m</span></label>
+        <label><input id="campo_213"  type="checkbox"><span>Garabatea</span><span class="age-tag">18-24m</span></label>
+      </div>
+    </div>
+    <div>
+      <h3>🗣️ Lenguaje</h3>
+      <div class="checklist">
+        <label><input id="campo_214"  type="checkbox"><span>Reconoce voz de los padres</span><span class="age-tag">1-2m</span></label>
+        <label><input id="campo_215"  type="checkbox"><span>Gorjea y balbucea</span><span class="age-tag">2-4m</span></label>
+        <label><input id="campo_216"  type="checkbox"><span>Ríe a carcajadas</span><span class="age-tag">4-6m</span></label>
+        <label><input id="campo_217"  type="checkbox"><span>Responde a su nombre</span><span class="age-tag">6-9m</span></label>
+        <label><input id="campo_218"  type="checkbox"><span>Dice "mamá/papá"</span><span class="age-tag">9-12m</span></label>
+        <label><input id="campo_219"  type="checkbox"><span>Entiende órdenes simples</span><span class="age-tag">12-18m</span></label>
+        <label><input id="campo_220"  type="checkbox"><span>Dice 50+ palabras</span><span class="age-tag">18-24m</span></label>
+      </div>
+    </div>
+    <div>
+      <h3>❤️ Social y Emocional</h3>
+      <div class="checklist">
+        <label><input id="campo_221"  type="checkbox"><span>Calma con contacto</span><span class="age-tag">1-2m</span></label>
+        <label><input id="campo_222"  type="checkbox"><span>Sonríe socialmente</span><span class="age-tag">2-3m</span></label>
+        <label><input id="campo_223"  type="checkbox"><span>Reconoce caras familiares</span><span class="age-tag">4-6m</span></label>
+        <label><input id="campo_224"  type="checkbox"><span>Juega a "cucú-tras"</span><span class="age-tag">6-9m</span></label>
+        <label><input id="campo_225"  type="checkbox"><span>Ansiedad por extraños</span><span class="age-tag">8-12m</span></label>
+        <label><input id="campo_226"  type="checkbox"><span>Imita gestos</span><span class="age-tag">12-18m</span></label>
+        <label><input id="campo_227"  type="checkbox"><span>Juego paralelo</span><span class="age-tag">18-24m</span></label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAMIZAJES -->
+<div class="card">
+  <h2><span class="icon-box red">🔬</span> Tamizajes y Laboratorios</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Estudio</th><th>Edad recomendada</th><th>Fecha realizado</th><th>Resultado</th><th style="min-width:200px">Observaciones</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="font-weight:500">Tamiz metabólico neonatal (Guthrie)</td>
+          <td style="color:#6b7280">3-5 días</td>
+          <td><input id="campo_228"  type="date"></td>
+          <td><select id="campo_252"><option value="">—</option><option>Normal</option><option>Anormal</option><option>Pendiente</option></select></td>
+          <td><input id="campo_229"  type="text" placeholder="Notas..."></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500">Tamiz auditivo</td>
+          <td style="color:#6b7280">Antes del alta</td>
+          <td><input id="campo_230"  type="date"></td>
+          <td><select id="campo_253"><option value="">—</option><option>Normal</option><option>Anormal</option><option>Pendiente</option></select></td>
+          <td><input id="campo_231"  type="text" placeholder="Notas..."></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500">Hemoglobina / Hematocrito</td>
+          <td style="color:#6b7280">6-12 meses</td>
+          <td><input id="campo_232"  type="date"></td>
+          <td><input id="campo_233"  type="text" placeholder="Valor" style="width:80px;text-align:center"></td>
+          <td><input id="campo_234"  type="text" placeholder="Notas..."></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500">Vitamina D</td>
+          <td style="color:#6b7280">6-12 meses</td>
+          <td><input id="campo_235"  type="date"></td>
+          <td><input id="campo_236"  type="text" placeholder="Valor" style="width:80px;text-align:center"></td>
+          <td><input id="campo_237"  type="text" placeholder="Notas..."></td>
+        </tr>
+        <tr>
+          <td style="font-weight:500">Test de Coombs / Bilirrubina</td>
+          <td style="color:#6b7280">Según indicación</td>
+          <td><input id="campo_238"  type="date"></td>
+          <td><input id="campo_239"  type="text" placeholder="Valor" style="width:80px;text-align:center"></td>
+          <td><input id="campo_240"  type="text" placeholder="Notas..."></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ALIMENTACIÓN -->
+<div class="card">
+  <h2><span class="icon-box green">🍎</span> Control de Alimentación</h2>
+  <div class="grid-3">
+    <div class="field">
+      <label>Tipo de lactancia actual</label>
+      <select id="campo_254"><option value="">Seleccionar...</option><option>Materna exclusiva</option><option>Materna predominante</option><option>Mixta</option><option>Fórmula exclusiva</option><option>Complementada</option></select>
+    </div>
+    <div class="field"><label>Edad inicio alimentación complementaria</label><input id="campo_241"  type="text" placeholder="Ej: 6 meses"></div>
+    <div class="field">
+      <label>Suplemento de hierro</label>
+      <select id="campo_255"><option value="">Seleccionar...</option><option>Sí</option><option>No</option><option>Suspendido</option></select>
+    </div>
+    <div class="field">
+      <label>Suplemento de vitamina D</label>
+      <select id="campo_256"><option value="">Seleccionar...</option><option>Sí</option><option>No</option><option>Suspendido</option></select>
+    </div>
+    <div class="field" style="grid-column: span 2;">
+      <label>Observaciones / Plan nutricional</label>
+      <textarea id="campo_245"  rows="2" placeholder="Notas sobre alimentación, intolerancias, preferencias..."></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- SIGNOS DE ALARMA -->
+<div class="card">
+  <h2><span class="icon-box red">⚠️</span> Signos de Alarma / Notas Importantes</h2>
+  <div class="field">
+    <textarea id="campo_246"  rows="4" placeholder="Registrar signos de alarma, hospitalizaciones, alergias, medicamentos en uso..."></textarea>
+  </div>
+</div>
+
+<!-- QR CODE -->
+<div class="card" style="text-align:center; padding:16px;">
+  <p style="font-size:11px; color:#6b7280; margin-bottom:8px;">📱 Escanea para ver online</p>
+  <img src="data:image/png;base64,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" alt="QR" style="width:120px; height:120px;">
+  <p style="font-size:10px; color:#9ca3af; margin-top:4px;">lfranciscowa.github.io/tarjeta-sienna</p>
+</div>
+
+<!-- FIRMA -->
+<div class="card" style="margin-top:40px;">
+  <div class="grid-2">
+    <div style="text-align:center; padding-top:40px;"><div style="border-top:1px solid #9ca3af; width:80%; margin:0 auto;"></div><p style="margin-top:8px; font-size:12px; color:#6b7280;">Firma del médico / pediatra</p></div>
+    <div style="text-align:center; padding-top:40px;"><div style="border-top:1px solid #9ca3af; width:80%; margin:0 auto;"></div><p style="margin-top:8px; font-size:12px; color:#6b7280;">Firma del tutor / responsable</p></div>
+  </div>
+</div>
+
+</div>
+
+<button class="history-toggle no-print" onclick="toggleHistory()">📋 Historial</button>
+
+<div class="history-panel no-print" id="historyPanel">
+  <div class="history-header">
+    <span>📋 Historial de Cambios</span>
+    <span onclick="toggleHistory()" style="cursor:pointer;">✕</span>
+  </div>
+  <div class="history-list" id="historyList">
+    <div class="history-item">
+      <div class="time">20/07/2026 15:07</div>
+      <div class="action">🍼 Tarjeta creada para Sienna</div>
+    </div>
+    <div class="history-item">
+      <div class="time">20/07/2026 15:20</div>
+      <div class="action">👶 Foto de Sienna añadida al encabezado</div>
+    </div>
+    <div class="history-item">
+      <div class="time">20/07/2026 15:35</div>
+      <div class="action">🧸 Fondo de ositos rosas agregado</div>
+    </div>
+    <div class="history-item">
+      <div class="time">20/07/2026 16:27</div>
+      <div class="action">📱 Foto recortada y centrada (cara de Sienna)</div>
+    </div>
+    <div class="history-item">
+      <div class="time">20/07/2026 16:43</div>
+      <div class="action">🌐 Publicado en GitHub Pages</div>
+    </div>
+    <div class="history-item">
+      <div class="time">20/07/2026 16:48</div>
+      <div class="action">📱 QR code añadido a la tarjeta</div>
+    </div>
+  </div>
+</div>
+
+<button class="save-btn no-print" onclick="saveAsPDF()">💾 Guardar como PDF</button>
+
+<button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir</button>
+
+<script>
+const months=[0,1,2,3,4,5,6,7,8,9,10,11,12,15,18,21,24];
+const pesoP3=[2.4,3.2,3.9,4.5,5.0,5.4,5.7,6.0,6.3,6.5,6.7,6.9,7.0,7.6,8.1,8.5,8.9];
+const pesoP10=[2.6,3.5,4.2,4.8,5.3,5.7,6.1,6.4,6.6,6.9,7.1,7.3,7.5,8.1,8.7,9.2,9.6];
+const pesoP50=[3.2,4.2,5.1,5.8,6.4,6.9,7.3,7.6,7.9,8.2,8.5,8.7,8.9,9.6,10.2,10.7,11.2];
+const pesoP90=[3.9,5.1,6.1,7.0,7.7,8.3,8.8,9.2,9.6,9.9,10.2,10.5,10.7,11.5,12.2,12.8,13.3];
+const pesoP97=[4.2,5.5,6.6,7.5,8.3,8.9,9.4,9.9,10.3,10.6,11.0,11.3,11.5,12.4,13.2,13.8,14.4];
+const tallaP3=[45.4,49.8,52.9,55.3,57.3,59.0,60.4,61.7,62.9,64.0,65.0,66.0,66.9,69.1,71.1,72.9,74.5];
+const tallaP10=[46.8,51.2,54.3,56.7,58.7,60.4,61.9,63.2,64.4,65.5,66.5,67.5,68.4,70.7,72.7,74.5,76.2];
+const tallaP50=[49.1,53.7,56.9,59.3,61.3,63.0,64.5,65.9,67.1,68.2,69.3,70.3,71.2,73.6,75.7,77.6,79.3];
+const tallaP90=[51.5,56.2,59.5,62.0,64.0,65.8,67.3,68.7,70.0,71.1,72.2,73.3,74.2,76.7,78.9,80.9,82.7];
+const tallaP97=[52.9,57.6,60.9,63.5,65.5,67.3,68.9,70.3,71.6,72.8,73.9,75.0,76.0,78.5,80.7,82.8,84.6];
+const pcP3=[31.5,34.0,35.7,37.0,38.0,38.8,39.5,40.1,40.6,41.1,41.5,41.8,42.2,43.0,43.7,44.3,44.8];
+const pcP10=[32.2,34.7,36.4,37.7,38.7,39.5,40.2,40.8,41.3,41.8,42.2,42.6,42.9,43.8,44.5,45.1,45.6];
+const pcP50=[33.9,36.4,38.0,39.3,40.3,41.1,41.8,42.4,42.9,43.4,43.8,44.1,44.5,45.3,46.0,46.6,47.1];
+const pcP90=[35.6,38.1,39.6,40.9,41.9,42.7,43.4,44.0,44.5,45.0,45.4,45.7,46.1,46.9,47.6,48.2,48.7];
+const pcP97=[36.3,38.8,40.3,41.6,42.6,43.4,44.1,44.7,45.2,45.7,46.1,46.4,46.8,47.6,48.3,48.9,49.4];
+const imcP3=[10.8,12.0,13.0,13.6,13.9,14.1,14.2,14.2,14.2,14.2,14.1,14.1,14.0,13.9,13.8,13.7,13.6];
+const imcP10=[11.4,12.6,13.6,14.2,14.5,14.7,14.8,14.8,14.8,14.7,14.7,14.6,14.5,14.4,14.3,14.2,14.1];
+const imcP50=[12.9,14.2,15.2,15.8,16.1,16.3,16.4,16.4,16.3,16.3,16.2,16.1,16.0,15.8,15.7,15.5,15.4];
+const imcP90=[14.6,16.0,17.0,17.6,17.9,18.1,18.2,18.2,18.1,18.0,17.9,17.8,17.7,17.5,17.3,17.1,16.9];
+const imcP97=[15.5,16.9,18.0,18.6,18.9,19.1,19.2,19.2,19.1,19.0,18.9,18.8,18.6,18.4,18.2,18.0,17.8];
+
+const commonOptions={
+  responsive:true, maintainAspectRatio:false,
+  interaction:{mode:'index',intersect:false},
+  plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:10}}},tooltip:{titleFont:{size:11},bodyFont:{size:10}}},
+  scales:{x:{title:{display:true,text:'Edad (meses)',font:{size:11}},ticks:{font:{size:10}}},y:{ticks:{font:{size:10}}}}
+};
+
+function createChart(id,label,yLabel,p3,p10,p50,p90,p97,patientData){
+  const ctx=document.getElementById(id).getContext('2d');
+  return new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:months,
+      datasets:[
+        {label:'P3',data:p3,borderColor:'#ef4444',borderWidth:1,pointRadius:0,fill:false,tension:0.4},
+        {label:'P10',data:p10,borderColor:'#f59e0b',borderWidth:1,pointRadius:0,fill:false,tension:0.4},
+        {label:'P50',data:p50,borderColor:'#22c55e',borderWidth:2,pointRadius:0,fill:false,tension:0.4},
+        {label:'P90',data:p90,borderColor:'#f59e0b',borderWidth:1,pointRadius:0,fill:false,tension:0.4},
+        {label:'P97',data:p97,borderColor:'#ef4444',borderWidth:1,pointRadius:0,fill:false,tension:0.4},
+        {label:'Sienna',data:patientData,borderColor:'#ec4899',backgroundColor:'#ec4899',borderWidth:3,pointRadius:5,pointBackgroundColor:'#ec4899',tension:0.3}
+      ]
+    },
+    options:{...commonOptions,scales:{...commonOptions.scales,y:{...commonOptions.scales.y,title:{display:true,text:yLabel,font:{size:11}}}}}
+  });
+}
+
+let charts={};
+
+function updateCharts(){
+  const rows=document.querySelectorAll('table tbody tr');
+  const data={peso:[],talla:[],pc:[],imc:[]};
+  rows.forEach(row=>{
+    const inputs=row.querySelectorAll('input');
+    const edad=inputs[1]?.value||'';
+    const peso=parseFloat(inputs[2]?.value);
+    const talla=parseFloat(inputs[4]?.value);
+    const pc=parseFloat(inputs[6]?.value);
+    const imc=parseFloat(inputs[8]?.value);
+    let meses=null;
+    if(edad.toLowerCase().includes('rn'))meses=0;
+    else if(edad.includes('d')){const m=edad.match(/(\d+)/);if(m)meses=parseInt(m[1])/30;}
+    else if(edad.includes('m')){const m=edad.match(/(\d+)/);if(m)meses=parseInt(m[1]);}
+    if(meses!==null){
+      if(!isNaN(peso))data.peso.push({x:meses,y:peso});
+      if(!isNaN(talla))data.talla.push({x:meses,y:talla});
+      if(!isNaN(pc))data.pc.push({x:meses,y:pc});
+      if(!isNaN(imc))data.imc.push({x:meses,y:imc});
+    }
+  });
+  Object.values(charts).forEach(c=>c?.destroy?.());
+  charts.peso=createChart('chartPeso','Peso','Peso (kg)',pesoP3,pesoP10,pesoP50,pesoP90,pesoP97,data.peso);
+  charts.talla=createChart('chartTalla','Talla','Talla (cm)',tallaP3,tallaP10,tallaP50,tallaP90,tallaP97,data.talla);
+  charts.pc=createChart('chartPC','PC','PC (cm)',pcP3,pcP10,pcP50,pcP90,pcP97,data.pc);
+  charts.imc=createChart('chartIMC','IMC','IMC (kg/m²)',imcP3,imcP10,imcP50,imcP90,imcP97,data.imc);
+}
+
+window.addEventListener('load',()=>updateCharts());
+
+// ===== HISTORIAL =====
+function toggleHistory() {
+  document.getElementById('historyPanel').classList.toggle('active');
+}
+
+// ===== GUARDAR COMO PDF (usando html2pdf) =====
+function saveAsPDF() {
+  // Crear un iframe oculto para imprimir solo el contenido
+  const printContent = document.querySelector('.container').innerHTML;
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.top = '-9999px';
+  iframe.style.left = '-9999px';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow.document;
+  doc.open();
+  doc.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Tarjeta Sienna - PDF</title>
+      <style>
+        @page { size: A4; margin: 12mm; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; color: #1f2937; line-height: 1.5; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header { background: linear-gradient(135deg, #ec4899, #8b5cf6); border-radius: 16px; padding: 28px; color: white; margin-bottom: 20px; }
+        .header h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+        .header p { opacity: 0.9; font-size: 15px; }
+        .card { background: white; border-radius: 16px; padding: 24px; margin-bottom: 20px; border: 1px solid #e5e7eb; }
+        .card h2 { font-size: 18px; color: #1f2937; margin-bottom: 16px; }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+        .field { margin-bottom: 12px; }
+        .field label { display: block; font-size: 11px; color: #6b7280; margin-bottom: 3px; font-weight: 600; text-transform: uppercase; }
+        .field .value { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 10px; font-size: 14px; background: #f9fafb; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { padding: 8px 6px; text-align: center; border-bottom: 1px solid #e5e7eb; }
+        th { background: #f3f4f6; font-weight: 600; color: #374151; font-size: 11px; }
+        .info-banner { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-radius: 16px; padding: 16px 20px; margin-bottom: 20px; border: 1px solid #bbf7d0; text-align: center; color: #166534; }
+        .checklist { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+        .med-card { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 8px; }
+        .baby-img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid white; }
+        .header { display: flex; align-items: center; gap: 20px; }
+        .header-text { flex: 1; }
+        .chart-container { height: 250px; }
+        .charts-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .pct-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11px; color: #6b7280; }
+        .note { font-size: 11px; color: #9ca3af; }
+        .history-panel, .save-btn, .print-btn, .history-toggle { display: none !important; }
+      </style>
+    </head>
+    <body>
+      <div class="container">` + printContent + `</div>
+    </body>
+    </html>
+  `);
+  doc.close();
+
+  iframe.contentWindow.focus();
+  iframe.contentWindow.print();
+
+  // Limpiar después de imprimir
+  setTimeout(() => {
+    document.body.removeChild(iframe);
+  }, 1000);
+
+  // Registrar en historial
+  addHistory('💾 PDF guardado');
+}
+
+// ===== REGISTRAR EN HISTORIAL =====
+function addHistory(action) {
+  const now = new Date();
+  const time = now.toLocaleDateString('es-ES') + ' ' + now.toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'});
+  const list = document.getElementById('historyList');
+  const item = document.createElement('div');
+  item.className = 'history-item';
+  item.innerHTML = '<div class="time">' + time + '</div><div class="action">' + action + '</div>';
+  list.insertBefore(item, list.firstChild);
+}
+
+// ===== AUTO-GUARDAR CAMBIOS EN HISTORIAL =====
+let lastSaved = {};
+function checkChanges() {
+  const inputs = document.querySelectorAll('input, select, textarea');
+  inputs.forEach(input => {
+    input.addEventListener('change', function() {
+      const label = this.closest('.field')?.querySelector('label')?.textContent || 'Campo';
+      addHistory('✏️ ' + label + ' actualizado');
+    });
+  });
+}
+
+// Iniciar monitoreo de cambios
+checkChanges();
+
+
+
+
+// ===== PERSISTENCIA DE DATOS =====
+const STORAGE_KEY = 'tarjeta_sienna_data_v2';
+
+function getFieldKey(el) {
+  // Usar id si existe, sino generar uno único basado en posición
+  if (el.id && el.id.startsWith('campo_')) {
+    return el.id;
+  }
+  // Para elementos sin id, usar un identificador único
+  if (!el.dataset.fieldKey) {
+    el.dataset.fieldKey = 'field_' + Math.random().toString(36).substr(2, 9);
+  }
+  return el.dataset.fieldKey;
+}
+
+function saveToStorage() {
+  const data = {};
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    const key = getFieldKey(el);
+    if (el.type === 'checkbox') {
+      data[key] = el.checked;
+    } else {
+      data[key] = el.value;
+    }
+  });
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  console.log('Guardado:', Object.keys(data).length, 'campos');
+}
+
+function loadFromStorage() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (!saved) {
+    console.log('No hay datos guardados');
+    return;
+  }
+  try {
+    const data = JSON.parse(saved);
+    let loaded = 0;
+    document.querySelectorAll('input, select, textarea').forEach(el => {
+      const key = getFieldKey(el);
+      if (data[key] !== undefined) {
+        if (el.type === 'checkbox') {
+          el.checked = data[key];
+        } else {
+          el.value = data[key];
+        }
+        loaded++;
+        // Efecto visual de carga
+        el.style.transition = 'background 0.5s';
+        el.style.background = '#f0fdf4';
+        setTimeout(() => { el.style.background = ''; }, 600);
+      }
+    });
+    console.log('Cargado:', loaded, 'campos');
+    updateCharts();
+  } catch(e) { 
+    console.error('Error cargando:', e); 
+  }
+}
+
+function exportData() {
+  const data = localStorage.getItem(STORAGE_KEY);
+  if (!data) { 
+    showToast('No hay datos para exportar', 'error'); 
+    return; 
+  }
+  const blob = new Blob([data], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'tarjeta_sienna_' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Archivo descargado correctamente', 'success');
+}
+
+function importData(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      // Validar que sea JSON válido
+      const parsed = JSON.parse(e.target.result);
+      if (typeof parsed !== 'object') throw new Error('Formato inválido');
+
+      localStorage.setItem(STORAGE_KEY, e.target.result);
+      loadFromStorage();
+      showToast('Datos importados correctamente', 'success');
+    } catch(err) {
+      showToast('Error: archivo no válido', 'error');
+      console.error(err);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function showToast(msg, type) {
+  // Remover toast anterior si existe
+  const existing = document.querySelector('.toast.show');
+  if (existing) existing.remove();
+
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  document.body.appendChild(t);
+
+  // Forzar reflow para animación
+  t.offsetHeight;
+  t.classList.add('show');
+
+  setTimeout(() => {
+    t.classList.remove('show');
+    setTimeout(() => t.remove(), 400);
+  }, 2500);
+}
+
+// ===== HISTORIAL DE CONSULTAS (medicamentos) =====
+const CONSULTAS_KEY = 'tarjeta_sienna_consultas_v1';
+const SEED_OCULTA_KEY = 'tarjeta_sienna_seed_oculta';
+const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+function formatFechaEs(iso) {
+  const partes = (iso || '').split('-').map(Number);
+  const y = partes[0], m = partes[1], d = partes[2];
+  if (!y || !m || !d) return iso || '';
+  return d + ' de ' + MESES_ES[m - 1] + ' de ' + y;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+// Consulta original de la tarjeta (16 de julio), mostrada como la más antigua del historial
+const consultaSeed = {
+  id: 'seed-16jul',
+  headerHtml: '<h3>📅 16 de julio de 2026 — 19 días de edad</h3>' +
+    '<span style="font-size:12px; color:#a16207; background:#fef08a; padding:4px 10px; border-radius:20px; font-weight:600; white-space:nowrap;">Dra. Antonia Abrodos R.</span>',
+  bodyHtml: '<div class="grid-2">' +
+    '<div class="med-card"><h4>🩸 Ácido fólico gotas</h4><p><span class="dosis">7 gotas</span> — una vez al día por <strong>2 meses</strong></p></div>' +
+    '<div class="med-card"><h4>🩸 Hemofer gotas</h4><p><span class="dosis">0.5 cc</span> — una vez al día por <strong>2 meses</strong></p></div>' +
+    '<div class="med-card"><h4>🌡️ Acetaminofén gotas</h4><p><span class="dosis">10 gotas (0.5 cc)</span> — cada 4-6 horas</p><p style="font-size:11px; color:#9ca3af; margin-top:4px;">⚠️ Solo en caso de fiebre o malestar</p></div>' +
+    '<div class="med-card"><h4>💨 Aeroflat gotas</h4><p><span class="dosis">6 gotas</span> — cada 8 horas</p><p style="font-size:11px; color:#9ca3af; margin-top:4px;">⚠️ Solo en caso de gases o cólicos</p></div>' +
+    '<div class="med-card" style="grid-column:span 2;"><h4>🧴 Ademina Crema</h4><p>Aplicar <span class="dosis">2 veces al día</span> sobre lesiones de piel</p></div>' +
+    '</div>' +
+    '<div style="margin-top:12px; padding:10px; background:#fff; border-radius:8px; border:1px solid #fde047;">' +
+    '<p style="font-size:13px; color:#854d0e; margin:0;"><strong>📌 Próxima cita:</strong> 20 de agosto de 2026</p>' +
+    '</div>'
+};
+
+function getConsultasGuardadas() {
+  try {
+    return JSON.parse(localStorage.getItem(CONSULTAS_KEY)) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function guardarConsultasGuardadas(lista) {
+  localStorage.setItem(CONSULTAS_KEY, JSON.stringify(lista));
+}
+
+function toggleConsulta(id) {
+  const card = document.querySelector('.consulta-card[data-id="' + id + '"]');
+  if (card) card.classList.toggle('abierta');
+}
+
+function renderConsultas() {
+  const cont = document.getElementById('historialConsultas');
+  if (!cont) return;
+
+  // Más reciente primero
+  const guardadas = getConsultasGuardadas().slice().sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+
+  let html = '';
+  guardadas.forEach(c => {
+    const medHtml = c.medicamentos ? '<p style="white-space:pre-wrap; margin:0 0 8px 0;">' + escapeHtml(c.medicamentos) + '</p>' : '';
+    const indHtml = c.indicaciones ? '<div style="margin-top:8px; padding:10px; background:#fff; border-radius:8px; border:1px solid #fde047;"><p style="font-size:13px; color:#854d0e; margin:0; white-space:pre-wrap;">' + escapeHtml(c.indicaciones) + '</p></div>' : '';
+    const proxHtml = c.proximaCita ? '<div style="margin-top:8px; padding:10px; background:#fff; border-radius:8px; border:1px solid #fde047;"><p style="font-size:13px; color:#854d0e; margin:0;"><strong>📌 Próxima cita:</strong> ' + formatFechaEs(c.proximaCita) + '</p></div>' : '';
+    const doctorHtml = c.doctor ? '<span style="font-size:12px; color:#a16207; background:#fef08a; padding:4px 10px; border-radius:20px; font-weight:600; white-space:nowrap;">' + escapeHtml(c.doctor) + '</span>' : '';
+    html += '<div class="consulta-card" data-id="' + c.id + '">' +
+      '<div class="consulta-header" onclick="toggleConsulta(\'' + c.id + '\')">' +
+        '<h3>📅 ' + formatFechaEs(c.fecha) + '</h3>' +
+        doctorHtml +
+        '<button type="button" class="consulta-del no-print" title="Editar consulta" onclick="editarConsulta(\'' + c.id + '\', event)">✏️</button>' +
+        '<button type="button" class="consulta-del no-print" title="Eliminar consulta" onclick="eliminarConsulta(\'' + c.id + '\', event)">🗑️</button>' +
+        '<span class="consulta-chevron">▶</span>' +
+      '</div>' +
+      '<div class="consulta-body">' + medHtml + indHtml + proxHtml + '</div>' +
+    '</div>';
+  });
+
+  // La consulta semilla (16 de julio) queda siempre como la más antigua, al final — salvo que se haya borrado
+  if (!localStorage.getItem(SEED_OCULTA_KEY)) {
+    html += '<div class="consulta-card" data-id="' + consultaSeed.id + '">' +
+      '<div class="consulta-header" onclick="toggleConsulta(\'' + consultaSeed.id + '\')">' +
+        consultaSeed.headerHtml +
+        '<button type="button" class="consulta-del no-print" title="Eliminar consulta" onclick="eliminarConsulta(\'' + consultaSeed.id + '\', event)">🗑️</button>' +
+        '<span class="consulta-chevron">▶</span>' +
+      '</div>' +
+      '<div class="consulta-body">' + consultaSeed.bodyHtml + '</div>' +
+    '</div>';
+  }
+
+  cont.innerHTML = html || '<p style="color:#9ca3af;text-align:center;padding:16px;">Sin consultas en el historial.</p>';
+}
+
+function eliminarConsulta(id, ev) {
+  if (ev) ev.stopPropagation();
+  if (!confirm('¿Eliminar esta consulta del historial? No se puede deshacer.')) return;
+
+  if (id === consultaSeed.id) {
+    localStorage.setItem(SEED_OCULTA_KEY, '1');
+  } else {
+    guardarConsultasGuardadas(getConsultasGuardadas().filter(c => c.id !== id));
+  }
+  if (editandoConsultaId === id) cancelarEdicionConsulta();
+  renderConsultas();
+  addHistory('🗑️ Consulta eliminada del historial');
+  showToast('🗑️ Consulta eliminada', 'success');
+}
+
+let editandoConsultaId = null;
+
+function guardarConsulta() {
+  const fechaEl = document.getElementById('campo_247');
+  const medEl = document.getElementById('campo_243');
+  const indEl = document.getElementById('campo_244');
+  const proxEl = document.getElementById('campo_248');
+  const docEl = document.getElementById('campo_249');
+  const fecha = fechaEl ? fechaEl.value : '';
+  const medicamentos = medEl ? medEl.value.trim() : '';
+  const indicaciones = indEl ? indEl.value.trim() : '';
+  const proximaCita = proxEl ? proxEl.value : '';
+  const doctor = docEl ? docEl.value.trim() : '';
+
+  if (!fecha) {
+    showToast('⚠️ Falta la fecha de la consulta', 'error');
+    return;
+  }
+  if (!medicamentos && !indicaciones) {
+    showToast('⚠️ Escribe los medicamentos o las indicaciones antes de guardar', 'error');
+    return;
+  }
+
+  const lista = getConsultasGuardadas();
+  const editando = !!editandoConsultaId;
+
+  if (editando) {
+    const idx = lista.findIndex(c => c.id === editandoConsultaId);
+    if (idx >= 0) {
+      lista[idx] = { id: editandoConsultaId, fecha: fecha, doctor: doctor, medicamentos: medicamentos, indicaciones: indicaciones, proximaCita: proximaCita };
+    }
+  } else {
+    lista.push({ id: 'c_' + Date.now(), fecha: fecha, doctor: doctor, medicamentos: medicamentos, indicaciones: indicaciones, proximaCita: proximaCita });
+  }
+  guardarConsultasGuardadas(lista);
+  renderConsultas();
+
+  // Salir del modo edición y dejar el formulario listo para una consulta nueva
+  // (el nombre del/de la doctor/a se deja tal cual, suele repetirse)
+  editandoConsultaId = null;
+  document.getElementById('formConsultaTitulo').textContent = 'Nueva consulta';
+  document.getElementById('btnGuardarConsulta').textContent = '💾 Guardar consulta en el historial';
+  document.getElementById('btnCancelarEdicion').style.display = 'none';
+
+  medEl.value = '';
+  indEl.value = '';
+  proxEl.value = '';
+  const hoy = new Date();
+  fechaEl.value = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
+  saveToStorage();
+
+  addHistory((editando ? '✏️ Consulta editada: ' : '🩺 Consulta guardada: ') + formatFechaEs(fecha));
+  showToast(editando ? '✅ Cambios guardados' : '✅ Consulta guardada en el historial', 'success');
+
+  // Si se indicó próxima cita, crear/actualizar el recordatorio automático de esa fecha
+  if (proximaCita) {
+    setRecordatorioProximaCita(proximaCita, 'Próxima cita de Sienna');
+  }
+}
+
+function editarConsulta(id, ev) {
+  if (ev) ev.stopPropagation();
+  const c = getConsultasGuardadas().find(x => x.id === id);
+  if (!c) return;
+
+  document.getElementById('campo_247').value = c.fecha || '';
+  document.getElementById('campo_243').value = c.medicamentos || '';
+  document.getElementById('campo_244').value = c.indicaciones || '';
+  document.getElementById('campo_248').value = c.proximaCita || '';
+  if (c.doctor) document.getElementById('campo_249').value = c.doctor;
+
+  editandoConsultaId = id;
+  document.getElementById('formConsultaTitulo').textContent = 'Editando consulta del ' + formatFechaEs(c.fecha);
+  document.getElementById('btnGuardarConsulta').textContent = '💾 Guardar cambios';
+  document.getElementById('btnCancelarEdicion').style.display = 'inline-block';
+
+  document.getElementById('formConsulta').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function cancelarEdicionConsulta() {
+  editandoConsultaId = null;
+  document.getElementById('formConsultaTitulo').textContent = 'Nueva consulta';
+  document.getElementById('btnGuardarConsulta').textContent = '💾 Guardar consulta en el historial';
+  document.getElementById('btnCancelarEdicion').style.display = 'none';
+
+  document.getElementById('campo_243').value = '';
+  document.getElementById('campo_244').value = '';
+  document.getElementById('campo_248').value = '';
+  const hoy = new Date();
+  document.getElementById('campo_247').value = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
+}
+
+// ===== INICIALIZACIÓN =====
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Inicializando persistencia...');
+
+  // Asignar field-key a elementos que no tengan id
+  document.querySelectorAll('input:not([id]), select:not([id]), textarea:not([id])').forEach((el, i) => {
+    el.id = 'campo_auto_' + i;
+  });
+
+  // Cargar datos guardados
+  const hayDatos = localStorage.getItem(STORAGE_KEY);
+  loadFromStorage();
+  if (hayDatos) {
+    setTimeout(() => showToast('📂 Datos restaurados automáticamente', 'success'), 800);
+  }
+
+  // Fecha de la consulta: si no hay una guardada, poner la de hoy por defecto
+  const fechaConsulta = document.getElementById('campo_247');
+  if (fechaConsulta && !fechaConsulta.value) {
+    const hoy = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+    const dd = String(hoy.getDate()).padStart(2, '0');
+    fechaConsulta.value = yyyy + '-' + mm + '-' + dd;
+  }
+
+  // Pintar el historial de consultas (colapsado por defecto)
+  renderConsultas();
+
+  // Configurar auto-guardado en TODOS los campos
+  document.querySelectorAll('input, select, textarea').forEach(el => {
+    // Guardar en change (cuando pierde foco o cambia selección)
+    el.addEventListener('change', function() {
+      saveToStorage();
+      // Efecto visual
+      this.style.transition = 'border-color 0.3s, background 0.3s';
+      this.style.borderColor = '#22c55e';
+      this.style.background = '#f0fdf4';
+      setTimeout(() => {
+        this.style.borderColor = '';
+        this.style.background = '';
+      }, 800);
+    });
+
+    // Para inputs de texto, guardar también en input (mientras escribe)
+    if (el.type === 'text' || el.tagName === 'TEXTAREA') {
+      let timeout;
+      el.addEventListener('input', function() {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => saveToStorage(), 500);
+      });
+    }
+  });
+
+  // Guardar antes de cerrar la página
+  window.addEventListener('beforeunload', function() {
+    saveToStorage();
+  });
+
+  console.log('Persistencia lista. Campos monitoreados:', document.querySelectorAll('input, select, textarea').length);
+});
+
+// ═══════════════════════════════════════════════════════════════
+// MEJORAS: Edad automática, IMC automático, Percentiles + color
+// ═══════════════════════════════════════════════════════════════
+
+// Convierte "YYYY-MM-DD" a fecha LOCAL a medianoche (evita que el parseo UTC nativo
+// de fechas sin hora corra el día según la zona horaria del dispositivo)
+function parseFechaLocal(str) {
+  if (!str) return null;
+  const partes = String(str).split('-').map(Number);
+  const y = partes[0], m = partes[1], d = partes[2];
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
+const FECHA_NAC = parseFechaLocal('2026-06-27');
+
+// ----- Utilidades -----
+function calcEdadMeses(fechaConsulta) {
+  if (!fechaConsulta) return null;
+  const fc = parseFechaLocal(fechaConsulta);
+  if (!fc || isNaN(fc)) return null;
+  const diffMs  = fc - FECHA_NAC;
+  if (diffMs < 0) return null;
+  const diffDias = Math.round(diffMs / 86400000);
+  return diffDias / 30.4375; // meses decimales (aproximado, solo para ubicar en la curva OMS)
+}
+
+function formatEdad(fechaConsulta) {
+  if (!fechaConsulta) return '';
+  const fc = parseFechaLocal(fechaConsulta);
+  if (!fc || isNaN(fc)) return '';
+  const diffMs   = fc - FECHA_NAC;
+  if (diffMs < 0) return '';
+  const dias     = Math.round(diffMs / 86400000);
+  if (dias === 0) return 'RN';
+  if (dias < 30)  return dias + 'd';
+  const meses    = Math.floor(dias / 30.4375);
+  const diasRest = Math.round(dias - meses * 30.4375);
+  if (meses < 1)  return dias + 'd';
+  if (diasRest === 0) return meses + 'm';
+  return meses + 'm' + diasRest + 'd';
+}
+
+// Edad exacta en años/meses/días de calendario (no aproximada), para el banner superior
+function edadActualStr() {
+  const hoy = new Date();
+  const hoyLocal = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+  if (hoyLocal < FECHA_NAC) return '—';
+
+  let años  = hoyLocal.getFullYear() - FECHA_NAC.getFullYear();
+  let meses = hoyLocal.getMonth() - FECHA_NAC.getMonth();
+  let dias  = hoyLocal.getDate() - FECHA_NAC.getDate();
+  if (dias < 0) {
+    meses -= 1;
+    dias += new Date(hoyLocal.getFullYear(), hoyLocal.getMonth(), 0).getDate();
+  }
+  if (meses < 0) {
+    años -= 1;
+    meses += 12;
+  }
+
+  if (años === 0 && meses === 0) return dias + ' día' + (dias === 1 ? '' : 's');
+  if (años === 0) return meses + ' mes' + (meses > 1 ? 'es' : '') + (dias ? ' y ' + dias + ' día' + (dias === 1 ? '' : 's') : '');
+  return años + ' año' + (años > 1 ? 's' : '') + (meses ? ' y ' + meses + ' mes' + (meses > 1 ? 'es' : '') : '');
+}
+
+// Toma la próxima cita real: el recordatorio automático que se actualiza al guardar una consulta
+function proximaConsultaStr() {
+  const auto = getReminders().find(r => r.id === 'auto-proxima-cita');
+  return auto ? formatFechaEs(auto.date) : '—';
+}
+
+function actualizarBannerProximaConsulta() {
+  const el = document.getElementById('proximaConsultaBanner');
+  if (el) el.textContent = proximaConsultaStr();
+}
+
+// ----- Interpolación percentil OMS (linear entre puntos) -----
+function interpolar(meses, tablaX, tablaY) {
+  if (meses <= tablaX[0])  return tablaY[0];
+  if (meses >= tablaX[tablaX.length - 1]) return tablaY[tablaY.length - 1];
+  for (let i = 0; i < tablaX.length - 1; i++) {
+    if (meses >= tablaX[i] && meses <= tablaX[i + 1]) {
+      const t = (meses - tablaX[i]) / (tablaX[i + 1] - tablaX[i]);
+      return tablaY[i] + t * (tablaY[i + 1] - tablaY[i]);
+    }
+  }
+  return null;
+}
+
+function calcPercentil(valor, meses, p3arr, p10arr, p50arr, p90arr, p97arr) {
+  if (isNaN(valor) || meses === null || meses < 0) return null;
+  const p3  = interpolar(meses, months, p3arr);
+  const p10 = interpolar(meses, months, p10arr);
+  const p50 = interpolar(meses, months, p50arr);
+  const p90 = interpolar(meses, months, p90arr);
+  const p97 = interpolar(meses, months, p97arr);
+  // Estimación del percentil por interpolación entre los puntos conocidos
+  let pct;
+  if      (valor <= p3)             pct = Math.round(3  * (valor / p3));
+  else if (valor <= p10)            pct = Math.round(3  + 7  * (valor - p3)  / (p10 - p3));
+  else if (valor <= p50)            pct = Math.round(10 + 40 * (valor - p10) / (p50 - p10));
+  else if (valor <= p90)            pct = Math.round(50 + 40 * (valor - p50) / (p90 - p50));
+  else if (valor <= p97)            pct = Math.round(90 + 7  * (valor - p90) / (p97 - p90));
+  else                              pct = Math.min(99, Math.round(97 + 2 * (valor - p97) / (p97 - p90)));
+  return Math.max(1, Math.min(99, pct));
+}
+
+function clasePct(pct) {
+  if (pct === null) return '';
+  if (pct < 3)   return 'pct-bajo';
+  if (pct < 10)  return 'pct-riesgo';
+  if (pct < 97)  return 'pct-normal';
+  if (pct < 99)  return 'pct-alto';
+  return 'pct-extremo';
+}
+
+function aplicarColorPct(inputEl, pct) {
+  inputEl.className = inputEl.className.replace(/pct-\S+/g, '') + ' pct-input';
+  if (pct !== null) inputEl.classList.add(clasePct(pct));
+}
+
+// ----- Filas de la tabla: mapa de IDs -----
+// Columnas: 0=fecha, 1=edad, 2=peso, 3=%peso, 4=talla, 5=%talla, 6=pc, 7=%pc, 8=imc, 9=%imc, 10=pa, 11=temp, 12=obs
+const FILAS = [
+  ['campo_8','campo_9','campo_10','campo_11','campo_12','campo_13','campo_14','campo_15','campo_16','campo_17','campo_18','campo_19','campo_20'],
+  ['campo_21','campo_22','campo_23','campo_24','campo_25','campo_26','campo_27','campo_28','campo_29','campo_30','campo_31','campo_32','campo_33'],
+  ['campo_34','campo_35','campo_36','campo_37','campo_38','campo_39','campo_40','campo_41','campo_42','campo_43','campo_44','campo_45','campo_46'],
+  ['campo_47','campo_48','campo_49','campo_50','campo_51','campo_52','campo_53','campo_54','campo_55','campo_56','campo_57','campo_58','campo_59'],
+  ['campo_60','campo_61','campo_62','campo_63','campo_64','campo_65','campo_66','campo_67','campo_68','campo_69','campo_70','campo_71','campo_72'],
+  ['campo_73','campo_74','campo_75','campo_76','campo_77','campo_78','campo_79','campo_80','campo_81','campo_82','campo_83','campo_84','campo_85'],
+  ['campo_86','campo_87','campo_88','campo_89','campo_90','campo_91','campo_92','campo_93','campo_94','campo_95','campo_96','campo_97','campo_98'],
+  ['campo_99','campo_100','campo_101','campo_102','campo_103','campo_104','campo_105','campo_106','campo_107','campo_108','campo_109','campo_110','campo_111'],
+  ['campo_112','campo_113','campo_114','campo_115','campo_116','campo_117','campo_118','campo_119','campo_120','campo_121','campo_122','campo_123','campo_124'],
+  ['campo_125','campo_126','campo_127','campo_128','campo_129','campo_130','campo_131','campo_132','campo_133','campo_134','campo_135','campo_136','campo_137'],
+];
+
+function actualizarFila(ids) {
+  const g = id => document.getElementById(id);
+  const fecha  = g(ids[0])?.value || '';
+  const meses  = calcEdadMeses(fecha);
+
+  // --- Edad automática ---
+  const edadEl = g(ids[1]);
+  if (edadEl && fecha) {
+    const edadStr = formatEdad(fecha);
+    if (edadStr) edadEl.value = edadStr;
+  }
+
+  // --- Valores ---
+  const peso  = parseFloat(g(ids[2])?.value);
+  const talla = parseFloat(g(ids[4])?.value);
+  const pc    = parseFloat(g(ids[6])?.value);
+
+  // --- IMC automático ---
+  const imcEl = g(ids[8]);
+  if (imcEl && !isNaN(peso) && !isNaN(talla) && talla > 0) {
+    const imc = peso / Math.pow(talla / 100, 2);
+    imcEl.value = imc.toFixed(1);
+    // Validación visual
+    imcEl.classList.remove('val-error', 'val-ok');
+    if (imc < 8 || imc > 30) imcEl.classList.add('val-error');
+    else                      imcEl.classList.add('val-ok');
+  }
+
+  // --- Validación peso/talla ---
+  const pesoEl  = g(ids[2]);
+  const tallaEl = g(ids[4]);
+  if (pesoEl && !isNaN(peso)) {
+    pesoEl.classList.toggle('val-error', peso < 0.5 || peso > 25);
+  }
+  if (tallaEl && !isNaN(talla)) {
+    tallaEl.classList.toggle('val-error', talla < 30 || talla > 100);
+  }
+
+  if (meses === null) return;
+
+  // --- Percentil peso ---
+  const pctPeso = calcPercentil(peso, meses, pesoP3, pesoP10, pesoP50, pesoP90, pesoP97);
+  const pctPesoEl = g(ids[3]);
+  if (pctPesoEl && !isNaN(peso)) {
+    pctPesoEl.value = pctPeso !== null ? pctPeso : '';
+    aplicarColorPct(pctPesoEl, pctPeso);
+  }
+
+  // --- Percentil talla ---
+  const pctTalla = calcPercentil(talla, meses, tallaP3, tallaP10, tallaP50, tallaP90, tallaP97);
+  const pctTallaEl = g(ids[5]);
+  if (pctTallaEl && !isNaN(talla)) {
+    pctTallaEl.value = pctTalla !== null ? pctTalla : '';
+    aplicarColorPct(pctTallaEl, pctTalla);
+  }
+
+  // --- Percentil PC ---
+  const pctPC = calcPercentil(pc, meses, pcP3, pcP10, pcP50, pcP90, pcP97);
+  const pctPCEl = g(ids[7]);
+  if (pctPCEl && !isNaN(pc)) {
+    pctPCEl.value = pctPC !== null ? pctPC : '';
+    aplicarColorPct(pctPCEl, pctPC);
+  }
+
+  // --- Percentil IMC ---
+  const imcVal = parseFloat(g(ids[8])?.value);
+  const pctIMC = calcPercentil(imcVal, meses, imcP3, imcP10, imcP50, imcP90, imcP97);
+  const pctIMCEl = g(ids[9]);
+  if (pctIMCEl && !isNaN(imcVal)) {
+    pctIMCEl.value = pctIMC !== null ? pctIMC : '';
+    aplicarColorPct(pctIMCEl, pctIMC);
+  }
+}
+
+function actualizarTodasFilas() {
+  FILAS.forEach(actualizarFila);
+}
+
+// ----- Indicador de guardado -----
+let saveIndicatorTimer;
+function mostrarGuardado() {
+  let el = document.getElementById('saveIndicator');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'saveIndicator';
+    el.textContent = '✅ Guardado';
+    document.body.appendChild(el);
+  }
+  el.classList.add('show');
+  clearTimeout(saveIndicatorTimer);
+  saveIndicatorTimer = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+// ----- Inicialización de las mejoras -----
+document.addEventListener('DOMContentLoaded', function() {
+  // Banner de edad dinámica
+  const edadSpan = document.getElementById('edadActual');
+  if (edadSpan) edadSpan.textContent = edadActualStr();
+  actualizarBannerProximaConsulta();
+
+  // Calcular todo al cargar
+  setTimeout(actualizarTodasFilas, 300);
+
+  // Escuchar cambios en fecha, peso, talla y PC de cada fila
+  FILAS.forEach(ids => {
+    // Fecha → recalcula edad + percentiles
+    const fechaEl = document.getElementById(ids[0]);
+    if (fechaEl) fechaEl.addEventListener('change', () => { actualizarFila(ids); updateCharts(); });
+
+    // Peso, Talla, PC → recalcula IMC + percentiles
+    [ids[2], ids[4], ids[6]].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input',  () => actualizarFila(ids));
+        el.addEventListener('change', () => { actualizarFila(ids); updateCharts(); });
+      }
+    });
+  });
+
+  // Hook guardar → mostrar indicador
+  const origSave = window.saveToStorage;
+  if (typeof origSave === 'function') {
+    window.saveToStorage = function() { origSave(); mostrarGuardado(); };
+  }
+});
+
+</script>
+
+<!-- Botones adicionales -->
+<button class="btn-float gdrive-btn no-print" onclick="uploadToDrive()" title="Subir a Google Drive" style="bottom:24px;right:610px;background:linear-gradient(135deg,#4285f4,#34a853);">☁️ Drive</button>
+<button class="btn-float gdrive-download-btn no-print" onclick="downloadFromDrive()" title="Descargar de Google Drive" style="bottom:24px;right:720px;background:linear-gradient(135deg,#ea4335,#fbbc05);">📥 Drive</button>
+<button class="btn-float reminder-btn no-print" onclick="showReminderModal()" title="Recordatorios" style="bottom:24px;right:830px;background:linear-gradient(135deg,#9c27b0,#e91e63);">🔔</button>
+
+<!-- Modal de recordatorios -->
+<div id="reminderModal" class="no-print" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:3000;justify-content:center;align-items:center;">
+  <div style="background:white;border-radius:16px;padding:24px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <h3 style="margin:0 0 12px 0;color:#ec4899;">🔔 Recordatorios de Consultas</h3>
+    <div id="notifPermisoBox" style="margin-bottom:12px; padding:8px 10px; background:#fdf2f8; border-radius:8px; font-size:12px; color:#831843; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+      <span id="notifPermisoTexto">Activa las notificaciones para que te avise en el celular cuando esté cerca la próxima cita.</span>
+      <button id="notifPermisoBtn" onclick="pedirPermisoNotificaciones()" style="flex-shrink:0; padding:6px 10px; border:none; border-radius:8px; background:#ec4899; color:white; font-size:11px; cursor:pointer;">Activar</button>
+    </div>
+    <div id="reminderList" style="max-height:200px;overflow-y:auto;margin-bottom:16px;"></div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <input type="date" id="reminderDate" style="flex:1;padding:8px;border:1px solid #d1d5db;border-radius:8px;">
+      <input type="text" id="reminderNote" placeholder="Nota..." style="flex:2;padding:8px;border:1px solid #d1d5db;border-radius:8px;">
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeReminderModal()" style="padding:8px 16px;border:none;border-radius:8px;background:#e5e7eb;cursor:pointer;">Cerrar</button>
+      <button onclick="addReminder()" style="padding:8px 16px;border:none;border-radius:8px;background:linear-gradient(135deg,#ec4899,#8b5cf6);color:white;cursor:pointer;">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Notificación de recordatorio -->
+<div id="reminderNotification" class="no-print" style="display:none;position:fixed;top:80px;right:20px;background:linear-gradient(135deg,#fef3c7,#fde047);padding:16px 20px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:2500;max-width:300px;">
+  <div style="font-weight:600;color:#92400e;margin-bottom:4px;">📅 Recordatorio</div>
+  <div id="reminderText" style="font-size:13px;color:#78350f;"></div>
+  <button onclick="dismissReminder()" style="margin-top:8px;padding:4px 12px;border:none;border-radius:6px;background:#f59e0b;color:white;font-size:12px;cursor:pointer;">Entendido</button>
+</div>
+
+
+
+
+<script>
+// ===== GOOGLE DRIVE SYNC =====
+// INSTRUCCIONES para activar Drive:
+// 1. Ve a https://console.cloud.google.com/
+// 2. Crea proyecto → Habilita "Google Drive API" + "Google Identity Services"
+// 3. Credenciales → OAuth 2.0 Client ID (tipo: Web) → copia el Client ID
+// 4. Credenciales → API Key → copia la API Key
+// 5. En OAuth: agrega tu dominio en "Authorized JavaScript origins"
+//    Ej: https://TU_USUARIO.github.io
+// 6. Reemplaza los valores abajo y vuelve a subir a GitHub
+
+const DRIVE_CLIENT_ID = '665562510411-aso3gar248i7ojl6eemrd8akm3sqj8cr.apps.googleusercontent.com';
+const DRIVE_API_KEY   = 'AIzaSyAQscIUoTyOVmFnk5_F4tLJiqkaFrRg-Vg';
+const DRIVE_CONFIGURED = (DRIVE_CLIENT_ID !== 'PEGA_TU_CLIENT_ID_AQUI');
+
+const DISCOVERY_DOCS = ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'];
+const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+
+let gapiInited = false;
+let gisInited  = false;
+let tokenClient = null;
+
+function gapiLoaded() {
+  if (!DRIVE_CONFIGURED) return;
+  gapi.load('client', async () => {
+    await gapi.client.init({ apiKey: DRIVE_API_KEY, discoveryDocs: DISCOVERY_DOCS });
+    gapiInited = true;
+    actualizarBotonesDrive();
+  });
+}
+
+function gisLoaded() {
+  if (!DRIVE_CONFIGURED) return;
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: DRIVE_CLIENT_ID,
+    scope: SCOPES,
+    callback: '',
+  });
+  gisInited = true;
+  actualizarBotonesDrive();
+}
+
+function actualizarBotonesDrive() {
+  const listo = gapiInited && gisInited;
+  document.querySelectorAll('.gdrive-btn, .gdrive-download-btn').forEach(btn => {
+    btn.style.opacity = listo ? '1' : '0.5';
+    btn.title = listo ? btn.title : 'Drive no configurado — ver instrucciones en el código';
+  });
+}
+
+function handleAuthClick(callback) {
+  if (!DRIVE_CONFIGURED || !gapiInited || !gisInited) {
+    showToast('⚠️ Drive no configurado. Usa Exportar/Importar JSON.', 'error');
+    return;
+  }
+  tokenClient.callback = async (resp) => {
+    if (resp.error) { showToast('Error de autenticación con Google', 'error'); return; }
+    await callback();
+  };
+  const token = gapi.client.getToken();
+  tokenClient.requestAccessToken({ prompt: token ? '' : 'consent' });
+}
+
+async function uploadToDrive() {
+  const data = localStorage.getItem(STORAGE_KEY);
+  if (!data) { showToast('No hay datos para subir', 'error'); return; }
+  handleAuthClick(async () => {
+    try {
+      const metadata = {
+        name: 'tarjeta_sienna_' + new Date().toISOString().slice(0,10) + '.json',
+        mimeType: 'application/json',
+      };
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(metadata)], {type:'application/json'}));
+      form.append('file',     new Blob([data], {type:'application/json'}));
+      const accessToken = gapi.client.getToken().access_token;
+      const res = await fetch(
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+        { method:'POST', headers:{'Authorization':'Bearer '+accessToken}, body:form }
+      );
+      if (res.ok) showToast('✅ Guardado en Google Drive', 'success');
+      else        showToast('Error al subir: ' + res.status, 'error');
+    } catch(e) { showToast('Error de conexión', 'error'); }
+  });
+}
+
+async function downloadFromDrive() {
+  handleAuthClick(async () => {
+    try {
+      const listRes = await gapi.client.drive.files.list({
+        q: "name contains 'tarjeta_sienna' and trashed=false",
+        orderBy: 'modifiedTime desc',
+        pageSize: 5,
+        fields: 'files(id,name,modifiedTime)',
+      });
+      const files = listRes.result.files;
+      if (!files || !files.length) { showToast('No se encontraron archivos en Drive', 'error'); return; }
+      // Mostrar selector si hay varios
+      const fileId = files[0].id;
+      const fileName = files[0].name;
+      const dlRes = await gapi.client.drive.files.get({ fileId, alt:'media' });
+      const content = typeof dlRes.result === 'string' ? dlRes.result : JSON.stringify(dlRes.result);
+      localStorage.setItem(STORAGE_KEY, content);
+      loadFromStorage();
+      setTimeout(actualizarTodasFilas, 200);
+      showToast('✅ Cargado desde Drive: ' + fileName, 'success');
+    } catch(e) { showToast('Error al descargar de Drive', 'error'); console.error(e); }
+  });
+}
+
+// ===== RECORDATORIOS =====
+const REMINDER_KEY = 'tarjeta_sienna_reminders';
+
+function actualizarCajaPermisoNotif() {
+  const box = document.getElementById('notifPermisoBox');
+  const txt = document.getElementById('notifPermisoTexto');
+  const btn = document.getElementById('notifPermisoBtn');
+  if (!box) return;
+  if (!('Notification' in window)) {
+    txt.textContent = 'Este navegador no soporta notificaciones del sistema. Igual verás el aviso dentro de la app.';
+    btn.style.display = 'none';
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    txt.textContent = '✅ Notificaciones activadas: avisaremos cuando esté cerca la próxima cita.';
+    btn.style.display = 'none';
+  } else if (Notification.permission === 'denied') {
+    txt.textContent = 'Bloqueaste las notificaciones. Actívalas en los ajustes del navegador si quieres el aviso del sistema.';
+    btn.style.display = 'none';
+  } else {
+    txt.textContent = 'Activa las notificaciones para que te avise en el celular cuando esté cerca la próxima cita.';
+    btn.style.display = 'inline-block';
+  }
+}
+
+function pedirPermisoNotificaciones() {
+  if (!('Notification' in window)) return;
+  Notification.requestPermission().then(() => {
+    actualizarCajaPermisoNotif();
+    checkReminders();
+  });
+}
+
+function showReminderModal() {
+  document.getElementById('reminderModal').style.display = 'flex';
+  actualizarCajaPermisoNotif();
+  renderReminders();
+}
+
+function closeReminderModal() {
+  document.getElementById('reminderModal').style.display = 'none';
+}
+
+function getReminders() {
+  const saved = localStorage.getItem(REMINDER_KEY);
+  return saved ? JSON.parse(saved) : [];
+}
+
+function saveReminders(list) {
+  localStorage.setItem(REMINDER_KEY, JSON.stringify(list));
+}
+
+function addReminder() {
+  const date = document.getElementById('reminderDate').value;
+  const note = document.getElementById('reminderNote').value;
+  if (!date) { showToast('Selecciona una fecha', 'error'); return; }
+
+  const reminders = getReminders();
+  reminders.push({ date, note, id: Date.now(), dismissed: false });
+  reminders.sort((a,b) => new Date(a.date) - new Date(b.date));
+  saveReminders(reminders);
+
+  document.getElementById('reminderDate').value = '';
+  document.getElementById('reminderNote').value = '';
+  renderReminders();
+  showToast('Recordatorio agregado', 'success');
+  checkReminders();
+}
+
+function deleteReminder(id) {
+  const reminders = getReminders().filter(r => String(r.id) !== String(id));
+  saveReminders(reminders);
+  renderReminders();
+}
+
+// Crea o actualiza el ÚNICO recordatorio automático ligado a la "próxima cita" de la tarjeta.
+// Se identifica con id fijo 'auto-proxima-cita' para no ir acumulando uno por cada consulta guardada.
+function setRecordatorioProximaCita(date, note) {
+  if (!date) return;
+  const reminders = getReminders();
+  const idx = reminders.findIndex(r => r.id === 'auto-proxima-cita');
+  const entry = { id: 'auto-proxima-cita', date: date, note: note, dismissed: false, auto: true };
+  if (idx >= 0) reminders[idx] = entry; else reminders.push(entry);
+  reminders.sort((a, b) => new Date(a.date) - new Date(b.date));
+  saveReminders(reminders);
+  checkReminders();
+  actualizarBannerProximaConsulta();
+}
+
+function renderReminders() {
+  const list = document.getElementById('reminderList');
+  const reminders = getReminders();
+
+  if (reminders.length === 0) {
+    list.innerHTML = '<p style="color:#9ca3af;text-align:center;padding:20px;">Sin recordatorios</p>';
+    return;
+  }
+
+  list.innerHTML = reminders.map(r => {
+    const d = new Date(r.date);
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const diff = Math.ceil((d - today) / (1000*60*60*24));
+    let badge = '';
+    if (diff < 0) badge = '<span style="color:#ef4444;font-size:11px;">⚠️ Vencido</span>';
+    else if (diff === 0) badge = '<span style="color:#f59e0b;font-size:11px;">📅 Hoy</span>';
+    else if (diff <= 3) badge = '<span style="color:#ec4899;font-size:11px;">⏰ En ' + diff + ' días</span>';
+
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:#f9fafb;border-radius:8px;margin-bottom:6px;">' +
+      '<div><div style="font-weight:600;font-size:13px;">' + r.date + (r.auto ? ' <span style="color:#a855f7;">(auto)</span>' : '') + '</div>' +
+      '<div style="font-size:12px;color:#6b7280;">' + (r.note || 'Consulta') + '</div>' + badge + '</div>' +
+      '<button onclick="deleteReminder(\'' + r.id + '\')" style="background:#fee2e2;color:#ef4444;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;">✕</button></div>';
+  }).join('');
+}
+
+function checkReminders() {
+  const reminders = getReminders();
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const hoyStr = today.toISOString().slice(0, 10);
+
+  const upcoming = reminders.filter(r => {
+    const d = new Date(r.date);
+    d.setHours(0,0,0,0);
+    const diff = Math.ceil((d - today) / (1000*60*60*24));
+    return diff >= 0 && diff <= 3 && !r.dismissed;
+  });
+
+  if (upcoming.length > 0) {
+    const r = upcoming[0];
+    const d = new Date(r.date);
+    const diff = Math.ceil((d - today) / (1000*60*60*24));
+    let text = '';
+    if (diff === 0) text = '¡Hoy tienes consulta!';
+    else if (diff === 1) text = 'Mañana tienes consulta';
+    else text = 'Consulta en ' + diff + ' días';
+    if (r.note) text += ': ' + r.note;
+
+    document.getElementById('reminderText').textContent = text;
+    document.getElementById('reminderNotification').style.display = 'block';
+
+    // Notificación del sistema: una sola vez por día por recordatorio, para no ser repetitivo
+    if ('Notification' in window && Notification.permission === 'granted' && r.lastNotifiedDate !== hoyStr) {
+      try {
+        new Notification('🔔 Tarjeta de Sienna', { body: text, icon: 'icons/icon-192.png' });
+      } catch (e) { /* algunos navegadores móviles requieren notificación vía service worker */ }
+      const idx = reminders.findIndex(x => x.id === r.id);
+      if (idx >= 0) {
+        reminders[idx].lastNotifiedDate = hoyStr;
+        saveReminders(reminders);
+      }
+    }
+  }
+}
+
+function dismissReminder() {
+  document.getElementById('reminderNotification').style.display = 'none';
+}
+
+// Verificar recordatorios al cargar y cada hora
+document.addEventListener('DOMContentLoaded', function() {
+  // La primera vez, tomar la "próxima cita" ya escrita en la tarjeta (20 de agosto de 2026) como recordatorio automático
+  if (!getReminders().some(r => r.id === 'auto-proxima-cita')) {
+    setRecordatorioProximaCita('2026-08-20', 'Próxima cita de Sienna');
+  }
+  checkReminders();
+  setInterval(checkReminders, 3600000); // cada hora
+});
+
+// Cerrar modal al hacer clic fuera
+document.getElementById('reminderModal').addEventListener('click', function(e) {
+  if (e.target === this) closeReminderModal();
+});
+
+</script>
+
+<input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importData(this.files[0])">
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
