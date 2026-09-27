@@ -198,6 +198,7 @@ input.val-ok    { border-color: #22c55e !important; }
   .gdrive-btn { bottom: 190px !important; }
   .gdrive-download-btn { bottom: 138px !important; }
   .reminder-btn { bottom: 86px !important; padding: 10px 12px !important; }
+  .logout-btn { bottom: 34px !important; padding: 10px 12px !important; }
   .history-toggle { top: 10px !important; padding: 8px 12px !important; font-size: 12px !important; }
 }
 </style>
@@ -238,6 +239,12 @@ async function sha256Hex(texto) {
 function desbloquear() {
   document.body.classList.remove('locked');
   document.getElementById('lockScreen').classList.add('hidden');
+}
+
+function cerrarSesion() {
+  if (!confirm('¿Cerrar sesión? La próxima vez que abras la tarjeta en este dispositivo va a pedir la clave de nuevo.')) return;
+  try { localStorage.removeItem(UNLOCK_KEY); } catch (e) {}
+  location.reload();
 }
 
 function toggleVerClave() {
@@ -1579,6 +1586,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <button class="btn-float gdrive-btn no-print" onclick="uploadToDrive()" title="Subir a Google Drive" style="bottom:24px;right:610px;background:linear-gradient(135deg,#4285f4,#34a853);">☁️ Drive</button>
 <button class="btn-float gdrive-download-btn no-print" onclick="downloadFromDrive()" title="Descargar de Google Drive" style="bottom:24px;right:720px;background:linear-gradient(135deg,#ea4335,#fbbc05);">📥 Drive</button>
 <button class="btn-float reminder-btn no-print" onclick="showReminderModal()" title="Recordatorios" style="bottom:24px;right:830px;background:linear-gradient(135deg,#9c27b0,#e91e63);">🔔</button>
+<button class="btn-float logout-btn no-print" onclick="cerrarSesion()" title="Cerrar sesion (vuelve a pedir la clave)" style="bottom:24px;right:940px;background:linear-gradient(135deg,#6b7280,#374151);">🔒</button>
 
 <!-- Modal de recordatorios -->
 <div id="reminderModal" class="no-print" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:3000;justify-content:center;align-items:center;">
