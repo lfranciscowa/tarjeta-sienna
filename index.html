@@ -206,6 +206,8 @@ input.val-ok    { border-color: #22c55e !important; }
   .gdrive-download-btn { bottom: 138px !important; }
   .reminder-btn { bottom: 86px !important; padding: 10px 12px !important; }
   .logout-btn { bottom: 34px !important; padding: 10px 12px !important; }
+  .export-btn { bottom: 242px !important; }
+  .import-btn { bottom: 294px !important; }
   .history-toggle { top: 10px !important; padding: 8px 12px !important; font-size: 12px !important; }
 }
 </style>
@@ -1054,13 +1056,23 @@ function loadFromStorage() {
   }
 }
 
+// Todas las claves de localStorage que usa la tarjeta (menos el desbloqueo, que es propio de cada dispositivo)
+function clavesExportables() {
+  return [STORAGE_KEY, CONSULTAS_KEY, SEED_OCULTA_KEY, REMINDER_KEY, FOTO_KEY];
+}
+
 function exportData() {
-  const data = localStorage.getItem(STORAGE_KEY);
-  if (!data) { 
-    showToast('No hay datos para exportar', 'error'); 
-    return; 
+  const payload = { exportadoEl: new Date().toISOString() };
+  let hayDatos = false;
+  clavesExportables().forEach(key => {
+    const val = localStorage.getItem(key);
+    if (val !== null) { payload[key] = val; hayDatos = true; }
+  });
+  if (!hayDatos) {
+    showToast('No hay datos para exportar', 'error');
+    return;
   }
-  const blob = new Blob([data], {type: 'application/json'});
+  const blob = new Blob([JSON.stringify(payload)], {type: 'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -1069,7 +1081,7 @@ function exportData() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showToast('Archivo descargado correctamente', 'success');
+  showToast('✅ Archivo descargado, guardalo o compartelo para importarlo en el otro dispositivo', 'success');
 }
 
 function importData(file) {
@@ -1077,15 +1089,24 @@ function importData(file) {
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
-      // Validar que sea JSON válido
       const parsed = JSON.parse(e.target.result);
       if (typeof parsed !== 'object') throw new Error('Formato inválido');
 
-      localStorage.setItem(STORAGE_KEY, e.target.result);
+      clavesExportables().forEach(key => {
+        if (parsed[key] !== undefined && parsed[key] !== null) {
+          localStorage.setItem(key, parsed[key]);
+        }
+      });
+
       loadFromStorage();
-      showToast('Datos importados correctamente', 'success');
+      if (typeof renderConsultas === 'function') renderConsultas();
+      if (typeof cargarFotoPerfilGuardada === 'function') cargarFotoPerfilGuardada();
+      if (typeof actualizarBannerProximaConsulta === 'function') actualizarBannerProximaConsulta();
+      if (typeof checkReminders === 'function') checkReminders();
+      setTimeout(actualizarTodasFilas, 200);
+      showToast('✅ Datos importados correctamente', 'success');
     } catch(err) {
-      showToast('Error: archivo no válido', 'error');
+      showToast('⚠️ Archivo no válido', 'error');
       console.error(err);
     }
   };
@@ -1646,6 +1667,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <button class="btn-float gdrive-download-btn no-print" onclick="downloadFromDrive()" title="Descargar de Google Drive" style="bottom:24px;right:720px;background:linear-gradient(135deg,#ea4335,#fbbc05);">📥 Drive</button>
 <button class="btn-float reminder-btn no-print" onclick="showReminderModal()" title="Recordatorios" style="bottom:24px;right:830px;background:linear-gradient(135deg,#9c27b0,#e91e63);">🔔</button>
 <button class="btn-float logout-btn no-print" onclick="cerrarSesion()" title="Cerrar sesion (vuelve a pedir la clave)" style="bottom:24px;right:940px;background:linear-gradient(135deg,#6b7280,#374151);">🔒</button>
+<button class="btn-float export-btn no-print" onclick="exportData()" title="Exportar datos (para pasarlos a otro dispositivo)" style="bottom:24px;right:1050px;background:linear-gradient(135deg,#0ea5e9,#0284c7);">📤 Exportar</button>
+<button class="btn-float import-btn no-print" onclick="document.getElementById('importFileInput').click()" title="Importar datos desde un archivo" style="bottom:24px;right:1180px;background:linear-gradient(135deg,#10b981,#059669);">📥 Importar</button>
 
 <!-- Modal de recordatorios -->
 <div id="reminderModal" class="no-print" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:3000;justify-content:center;align-items:center;">
