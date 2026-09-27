@@ -69,7 +69,14 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f3f4f6; colo
 .header-text { position: relative; z-index: 2; flex: 1; }
 .header h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; text-shadow: 0 2px 8px rgba(0,0,0,0.3); }
 .header p { opacity: 0.95; font-size: 15px; text-shadow: 0 1px 4px rgba(0,0,0,0.3); }
-.baby-img { position: relative; z-index: 2; width: 130px; height: 130px; border-radius: 50%; object-fit: cover; border: 4px solid rgba(255,255,255,0.7); box-shadow: 0 4px 20px rgba(0,0,0,0.3); flex-shrink: 0; }
+.baby-img-wrap { position: relative; z-index: 2; flex-shrink: 0; display: inline-block; }
+.baby-img { width: 130px; height: 130px; border-radius: 50%; object-fit: cover; border: 4px solid rgba(255,255,255,0.7); box-shadow: 0 4px 20px rgba(0,0,0,0.3); display: block; }
+.baby-img-btn {
+  position: absolute; bottom: 2px; right: 2px; width: 34px; height: 34px; border-radius: 50%;
+  background: white; border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.3); cursor: pointer;
+  font-size: 16px; display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.baby-img-btn:hover { background: #fce7f3; }
 .header h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
 .header p { opacity: 0.9; font-size: 15px; }
 .card { background: white; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border: 1px solid #e5e7eb; }
@@ -305,7 +312,11 @@ document.addEventListener('DOMContentLoaded', () => {
     <h1>🍼 Tarjeta de Control Pediátrico</h1>
     <p>Seguimiento integral del desarrollo infantil — Primera infancia (0-24 meses)</p>
   </div>
-  <img class="baby-img" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZjlhOGQ0Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2MwODRmYyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPGNpcmNsZSBjeD0iMTAwIiBjeT0iMTAwIiByPSIxMDAiIGZpbGw9InVybCgjZykiLz4KICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSI4NiIgcj0iMzQiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuOTUiLz4KICA8cGF0aCBkPSJNNTUgMTY1YzAtMzAgMjAtNTIgNDUtNTJzNDUgMjIgNDUgNTIiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuOTUiLz4KPC9zdmc+Cg==" alt="Bebé Sienna">
+  <div class="baby-img-wrap">
+    <img class="baby-img" id="babyImg" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZjlhOGQ0Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2MwODRmYyIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPGNpcmNsZSBjeD0iMTAwIiBjeT0iMTAwIiByPSIxMDAiIGZpbGw9InVybCgjZykiLz4KICA8Y2lyY2xlIGN4PSIxMDAiIGN5PSI4NiIgcj0iMzQiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuOTUiLz4KICA8cGF0aCBkPSJNNTUgMTY1YzAtMzAgMjAtNTIgNDUtNTJzNDUgMjIgNDUgNTIiIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuOTUiLz4KPC9zdmc+Cg==" alt="Foto de perfil">
+    <button type="button" class="baby-img-btn no-print" onclick="document.getElementById('babyImgInput').click()" title="Cambiar foto">📷</button>
+    <input type="file" id="babyImgInput" accept="image/*" style="display:none" onchange="cambiarFotoPerfil(this.files[0])">
+  </div>
 </div>
 
 <!-- DATOS DEL PACIENTE -->
@@ -938,6 +949,51 @@ checkChanges();
 
 
 
+// ===== FOTO DE PERFIL (solo en este dispositivo, nunca en el codigo) =====
+const FOTO_KEY = 'tarjeta_sienna_foto_v1';
+
+function cambiarFotoPerfil(file) {
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    showToast('⚠️ Elige un archivo de imagen', 'error');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      // Recorta a cuadrado y reduce tamaño para no llenar el almacenamiento del navegador
+      const tam = 400;
+      const canvas = document.createElement('canvas');
+      canvas.width = tam; canvas.height = tam;
+      const ctx = canvas.getContext('2d');
+      const lado = Math.min(img.width, img.height);
+      const sx = (img.width - lado) / 2;
+      const sy = (img.height - lado) / 2;
+      ctx.drawImage(img, sx, sy, lado, lado, 0, 0, tam, tam);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      try {
+        localStorage.setItem(FOTO_KEY, dataUrl);
+      } catch (e) {
+        showToast('⚠️ La foto es muy pesada para guardarla en este navegador', 'error');
+        return;
+      }
+      document.getElementById('babyImg').src = dataUrl;
+      addHistory('📷 Foto de perfil actualizada');
+      showToast('✅ Foto guardada en este dispositivo', 'success');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function cargarFotoPerfilGuardada() {
+  try {
+    const guardada = localStorage.getItem(FOTO_KEY);
+    if (guardada) document.getElementById('babyImg').src = guardada;
+  } catch (e) {}
+}
+
 // ===== PERSISTENCIA DE DATOS =====
 const STORAGE_KEY = 'tarjeta_sienna_data_v2';
 
@@ -1283,6 +1339,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Pintar el historial de consultas (colapsado por defecto)
   renderConsultas();
+
+  // Cargar la foto de perfil guardada en este dispositivo (si hay)
+  cargarFotoPerfilGuardada();
 
   // Configurar auto-guardado en TODOS los campos
   document.querySelectorAll('input, select, textarea').forEach(el => {
