@@ -18,14 +18,24 @@
 body.locked > *:not(#lockScreen) { display: none !important; }
 #lockScreen {
   position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(135deg, #fdf2f8, #f3e8ff); padding: 20px;
+  background: linear-gradient(135deg, #fdf2f8, #f3e8ff);
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjEyMDAiIHZpZXdCb3g9IjAgMCA4MDAgMTIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic2t5IiB4MT0iMCIgeTE9IjAiIHgyPSIwLjMiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZmJjZmU4Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMC41IiBzdG9wLWNvbG9yPSIjZjVkMGZlIi8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2VkZTlmZSIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxyYWRpYWxHcmFkaWVudCBpZD0ibW9vbkdsb3ciIGN4PSIwLjUiIGN5PSIwLjUiIHI9IjAuNSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2ZmZmZmZiIgc3RvcC1vcGFjaXR5PSIwLjkiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjZmZmZmZmIiBzdG9wLW9wYWNpdHk9IjAiLz4KICAgIDwvcmFkaWFsR3JhZGllbnQ+CiAgPC9kZWZzPgoKICA8cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjEyMDAiIGZpbGw9InVybCgjc2t5KSIvPgoKICA8IS0tIG51YmVzIC0tPgogIDxnIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuNTUiPgogICAgPGVsbGlwc2UgY3g9IjEzMCIgY3k9IjE4MCIgcng9IjkwIiByeT0iMzQiLz4KICAgIDxlbGxpcHNlIGN4PSIyMDAiIGN5PSIxNjUiIHJ4PSI3MCIgcnk9IjMwIi8+CiAgICA8ZWxsaXBzZSBjeD0iNjQwIiBjeT0iMjYwIiByeD0iMTAwIiByeT0iMzYiLz4KICAgIDxlbGxpcHNlIGN4PSI1ODAiIGN5PSIyNDUiIHJ4PSI3MCIgcnk9IjI4Ii8+CiAgICA8ZWxsaXBzZSBjeD0iMTIwIiBjeT0iOTgwIiByeD0iMTEwIiByeT0iMzYiLz4KICAgIDxlbGxpcHNlIGN4PSI2MCIgY3k9IjEwMDAiIHJ4PSI3MCIgcnk9IjI4Ii8+CiAgICA8ZWxsaXBzZSBjeD0iNzAwIiBjeT0iMTA1MCIgcng9IjEwMCIgcnk9IjM0Ii8+CiAgPC9nPgoKICA8IS0tIGx1bmEgY29uIGJyaWxsbyAtLT4KICA8Y2lyY2xlIGN4PSI2NjAiIGN5PSIxNTAiIHI9IjkwIiBmaWxsPSJ1cmwoI21vb25HbG93KSIvPgogIDxjaXJjbGUgY3g9IjY2MCIgY3k9IjE1MCIgcj0iNDYiIGZpbGw9IiNmZmY3ZWQiIG9wYWNpdHk9IjAuOSIvPgoKICA8IS0tIGVzdHJlbGxpdGFzIC0tPgogIDxnIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9IjAuODUiPgogICAgPHBhdGggZD0iTTkwIDM0MCBsNiAxNCAxNCA2IC0xNCA2IC02IDE0IC02IC0xNCAtMTQgLTYgMTQgLTYgeiIvPgogICAgPHBhdGggZD0iTTcyMCA0NjAgbDUgMTEgMTEgNSAtMTEgNSAtNSAxMSAtNSAtMTEgLTExIC01IDExIC01IHoiLz4KICAgIDxwYXRoIGQ9Ik02MCA2MjAgbDUgMTEgMTEgNSAtMTEgNSAtNSAxMSAtNSAtMTEgLTExIC01IDExIC01IHoiLz4KICAgIDxwYXRoIGQ9Ik03NDAgNzUwIGw2IDE0IDE0IDYgLTE0IDYgLTYgMTQgLTYgLTE0IC0xNCAtNiAxNCAtNiB6Ii8+CiAgICA8cGF0aCBkPSJNNDAgMjYwIGw0IDkgOSA0IC05IDQgLTQgOSAtNCAtOSAtOSAtNCA5IC00IHoiLz4KICAgIDxwYXRoIGQ9Ik02ODAgOTAwIGw1IDExIDExIDUgLTExIDUgLTUgMTEgLTUgLTExIC0xMSAtNSAxMSAtNSB6Ii8+CiAgPC9nPgoKICA8IS0tIGNvcmF6b25lcyBmbG90YW5kbyAtLT4KICA8ZyBmaWxsPSIjZmRhNGFmIiBvcGFjaXR5PSIwLjUiPgogICAgPHBhdGggZD0iTTE0MCA1NjBjLTE0LTE2LTQwLTgtNDAgMTIgMCAxOCAyNiAzNCA0MCA0NiAxNC0xMiA0MC0yOCA0MC00NiAwLTIwLTI2LTI4LTQwLTEyeiIvPgogICAgPHBhdGggZD0iTTY2MCA2NDBjLTExLTEzLTMyLTYtMzIgOSAwIDE1IDIxIDI3IDMyIDM3IDExLTEwIDMyLTIyIDMyLTM3IDAtMTUtMjEtMjItMzItOXoiLz4KICAgIDxwYXRoIGQ9Ik05MCA4MjBjLTExLTEzLTMyLTYtMzIgOSAwIDE1IDIxIDI3IDMyIDM3IDExLTEwIDMyLTIyIDMyLTM3IDAtMTUtMjEtMjItMzItOXoiLz4KICAgIDxwYXRoIGQ9Ik03MDAgMzgwYy05LTEwLTI2LTUtMjYgNyAwIDEyIDE3IDIyIDI2IDMwIDktOCAyNi0xOCAyNi0zMCAwLTEyLTE3LTE3LTI2LTd6Ii8+CiAgPC9nPgoKICA8IS0tIGxhY2l0byBncmFuZGUgZGVjb3JhdGl2byAtLT4KICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0MDAsMTEyMCkiIG9wYWNpdHk9IjAuMzUiPgogICAgPHBhdGggZD0iTTAgMCBDIC00MCAtMzQgLTEwMCAtMjAgLTEwMCAxNCBDIC0xMDAgNDAgLTUwIDQwIDAgMTAgQyA1MCA0MCAxMDAgNDAgMTAwIDE0IEMgMTAwIC0yMCA0MCAtMzQgMCAwIFoiIGZpbGw9IiNmNDcyYjYiLz4KICAgIDxjaXJjbGUgY3g9IjAiIGN5PSI0IiByPSIxMiIgZmlsbD0iI2VjNDg5OSIvPgogIDwvZz4KPC9zdmc+Cg==");
+  background-size: cover; background-position: center;
+  padding: 20px;
 }
 #lockScreen.hidden { display: none; }
 .lock-card {
-  background: white; border-radius: 20px; padding: 32px 28px; max-width: 340px; width: 100%;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.15); text-align: center;
+  background: rgba(255,255,255,0.94); backdrop-filter: blur(2px); border-radius: 24px; padding: 36px 28px 28px; max-width: 340px; width: 100%;
+  box-shadow: 0 20px 60px rgba(131,24,67,0.25); text-align: center; border: 1px solid rgba(255,255,255,0.6);
 }
-.lock-icon { font-size: 40px; margin-bottom: 8px; }
+.lock-badge {
+  width: 76px; height: 76px; margin: 0 auto 14px; border-radius: 50%;
+  background: linear-gradient(135deg, #f9a8d4, #c084fc);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 20px rgba(236,72,153,0.35); position: relative;
+}
+.lock-badge span:first-child { font-size: 34px; }
+.lock-badge .lock-mini { position: absolute; bottom: -4px; right: -4px; background: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
 .lock-card h2 { font-size: 18px; color: #831843; margin-bottom: 4px; }
 .lock-card p { font-size: 13px; color: #6b7280; margin-bottom: 18px; }
 .lock-card input {
@@ -201,10 +211,13 @@ input.val-ok    { border-color: #22c55e !important; }
 
 <div id="lockScreen">
   <div class="lock-card" id="lockCard">
-    <div class="lock-icon">🔒</div>
+    <div class="lock-badge"><span>🎀</span><span class="lock-mini">🔒</span></div>
     <h2>Tarjeta de Sienna</h2>
     <p>Ingresa la clave para ver la tarjeta</p>
-    <input type="password" id="lockInput" placeholder="Clave" autocomplete="off" inputmode="text">
+    <div style="position:relative;">
+      <input type="password" id="lockInput" placeholder="Clave" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="text" style="padding-right:40px;">
+      <button type="button" id="lockToggleVer" onclick="toggleVerClave()" title="Mostrar/ocultar clave" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); width:auto; padding:4px 8px; margin:0; background:none; color:#6b7280; font-size:16px; box-shadow:none;">👁️</button>
+    </div>
     <button type="button" onclick="intentarDesbloqueo()">Entrar</button>
     <div class="lock-error" id="lockError"></div>
   </div>
@@ -227,11 +240,25 @@ function desbloquear() {
   document.getElementById('lockScreen').classList.add('hidden');
 }
 
+function toggleVerClave() {
+  const input = document.getElementById('lockInput');
+  const btn = document.getElementById('lockToggleVer');
+  const verSiEsPassword = input.type === 'password';
+  input.type = verSiEsPassword ? 'text' : 'password';
+  btn.textContent = verSiEsPassword ? '🙈' : '👁️';
+}
+
 async function intentarDesbloqueo() {
   const input = document.getElementById('lockInput');
   const err = document.getElementById('lockError');
   const card = document.getElementById('lockCard');
-  const hash = await sha256Hex(input.value);
+  let hash;
+  try {
+    hash = await sha256Hex(input.value.trim());
+  } catch (e) {
+    err.textContent = 'Este navegador no puede verificar la clave. Prueba con Chrome o Safari actualizado.';
+    return;
+  }
   if (hash === PIN_HASH) {
     try { localStorage.setItem(UNLOCK_KEY, '1'); } catch (e) {}
     desbloquear();
